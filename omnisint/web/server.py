@@ -52,6 +52,7 @@ class Run:
         self.state = "running"          # running | done | failed | cancelled
         self.events: list[dict] = []
         self.profile = None
+        self.pinned: list[dict] = []
         self.error: str | None = None
         self.lock = threading.Lock()
 
@@ -68,6 +69,7 @@ class Run:
                 "preset": self.preset,
                 "targets": [{"value": t.value, "type": t.type.value} for t in self.targets],
                 "secondary": list(self.secondary),
+                "pinned": list(self.pinned),
                 "started": self.started,
                 "elapsed": (self.finished or time.time()) - self.started,
                 "events": list(self.events),
@@ -87,8 +89,38 @@ class State:
         self.order: list[str] = []
         self.lock = threading.Lock()
 
+    @staticmethod
+    def anchors_from_pins(pinned: list[dict]) -> tuple[list[str], list[str]]:
+        """Turn confirmed accounts into things worth searching and matching.
+
+        A confirmed account is the richest anchor an operator can give us:
+        its handle becomes a target in its own right, its name anchors
+        persona clustering, and its employer/school/location become
+        cross-checks. This is what makes "stack these, then rescan" better
+        than simply re-running the same query.
+        """
+        seeds, terms = [], []
+        for pin in pinned:
+            for key in ("username", "handle", "login"):
+                v = str(pin.get(key) or "").strip()
+                if v and v not in seeds:
+                    seeds.append(v)
+            name = str(pin.get("fullname") or "").strip()
+            if name and name not in seeds:
+                seeds.append(name)
+            for t in (pin.get("terms") or []):
+                t = str(t).strip()
+                if t and t not in terms:
+                    terms.append(t)
+        return seeds, terms
+
     def start(self, raw_targets: list[str], secondary: list[str],
-              preset: str, extra: dict) -> Run:
+              preset: str, extra: dict, pinned: list[dict] | None = None) -> Run:
+        pinned = pinned or []
+        pin_seeds, pin_terms = self.anchors_from_pins(pinned)
+        raw_targets = list(raw_targets) + [s for s in pin_seeds if s not in raw_targets]
+        secondary = list(secondary) + [t for t in pin_terms if t not in secondary]
+
         seeds, skipped = [], []
         for raw in raw_targets:
             ident = Identifier.parse(raw)
@@ -115,18 +147,21 @@ class State:
 
         run_id = secrets.token_hex(6)
         run = Run(run_id, seeds, secondary, opts.preset)
+        run.pinned = pinned
         with self.lock:
             self.runs[run_id] = run
             self.order.insert(0, run_id)
 
         audit("web.scan", self.auth, run_id=run_id,
               targets=[s.value for s in seeds], secondary=secondary,
-              preset=opts.preset, passive=opts.passive)
+              preset=opts.preset, passive=opts.passive,
+              confirmed_accounts=[p.get("url") or p.get("platform") for p in pinned])
 
         def work():
             try:
                 engine = Engine(opts, progress=run.log)
-                run.profile = engine.scan(seeds, secondary=secondary)
+                run.profile = engine.scan(seeds, secondary=secondary,
+                                          pinned=pinned)
                 run.state = "done"
             except Exception as exc:                      # noqa: BLE001
                 run.state = "failed"
@@ -266,10 +301,14 @@ def make_handler(state: State, token: str):
                     primary = [str(x) for x in raw]
                     sec = []
                 sec += [str(x) for x in (payload.get("secondary") or [])]
+                pins = payload.get("pinned") or []
+                if not isinstance(pins, list) or len(pins) > 200:
+                    return self._fail(HTTPStatus.BAD_REQUEST, "bad pinned list")
                 try:
                     run = state.start(primary, [s for s in sec if s.strip()],
                                       str(payload.get("preset") or "standard"),
-                                      payload.get("options") or {})
+                                      payload.get("options") or {},
+                                      pinned=[p for p in pins if isinstance(p, dict)])
                 except ValueError as exc:
                     return self._fail(HTTPStatus.BAD_REQUEST, str(exc))
                 return self._json({"id": run.id})

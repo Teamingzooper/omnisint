@@ -262,6 +262,90 @@ check("unknown setting is reported", "Unknown setting" in _buf.getvalue())
 _con._set("timeout", "abc")
 check("non-numeric setting is reported", "not a valid int" in _buf.getvalue())
 
+# --- stacking accounts into one identity ----------------------------------
+print("\nconfirmed identity (pins)")
+from omnisint.correlate import apply_pins as _apply_pins
+from omnisint.web.server import State as _WebState
+
+_seeds, _terms = _WebState.anchors_from_pins([
+    {"platform": "GitHub", "url": "https://github.com/torvalds",
+     "username": "torvalds", "fullname": "Linus Torvalds",
+     "terms": ["Linux Foundation", "Portland, OR"]},
+    {"platform": "Keybase", "username": "ltorv", "fullname": "Linus Torvalds"},
+])
+check("pinned handles become seeds", "torvalds" in _seeds and "ltorv" in _seeds)
+check("pinned name anchors the identity", "Linus Torvalds" in _seeds)
+check("the same anchor is not added twice", _seeds.count("Linus Torvalds") == 1)
+check("pinned context becomes cross-checks", _terms == ["Linux Foundation", "Portland, OR"])
+check("empty pins are harmless", _WebState.anchors_from_pins([]) == ([], []))
+
+
+def _pinned_profile():
+    pr = Profile(seeds=[Identifier.parse("jdoe")],
+                 pinned=[{"platform": "Instagram", "url": "https://instagram.com/jdoe"}])
+    merge_evidence(pr, "jdoe", [
+        Evidence("maigret", "GitHub", "https://github.com/jdoe", Status.FOUND, 0.7,
+                 {"fullname": "Alice Smith", "company": "Acme"}),
+        Evidence("maigret", "GitLab", "https://gitlab.com/jdoe", Status.FOUND, 0.7,
+                 {"fullname": "Alice Smith"}),
+        Evidence("maigret", "Instagram", "https://instagram.com/jdoe", Status.FOUND,
+                 0.7, {"fullname": "Bob Jones"}),
+    ])
+    score_accounts(pr); harvest_identity(pr); apply_corroboration(pr)
+    cluster_personas(pr); _apply_pins(pr)
+    return pr
+
+
+_pp = _pinned_profile()
+_ig = [a for a in _pp.accounts.values() if a.platform == "Instagram"][0]
+_gh = [a for a in _pp.accounts.values() if a.platform == "GitHub"][0]
+check("a pin outranks the tools' own conclusion",
+      _ig.pinned and _ig.attribution_level == "same person")
+check("a pin is labelled as your judgement", "confirmed by you" in (_ig.persona_note or ""))
+check("that provenance is recorded in the report",
+      any("you confirmed them" in w for w in _pp.warnings))
+check("unpinned accounts are untouched", not _gh.pinned)
+check("pins survive serialisation",
+      [a for a in _pp.to_dict()["accounts"] if a["platform"] == "Instagram"][0]["pinned"])
+
+# --- what-they-do summary --------------------------------------------------
+print("\ninterest summary")
+from omnisint.summary import summarise as _summarise, topics_for as _topic_for
+
+for _p, _want in [("GitHub", "software development"), ("Steam", "gaming"),
+                  ("SoundCloud", "music"), ("Kaggle", "machine learning / data"),
+                  ("500px", "visual art / photography"),
+                  ("Leetcode", "competitive programming / CS")]:
+    check(f"{_p} -> {_want}", _topic_for(_p) == _want)
+check("ubiquitous platforms imply nothing", _topic_for("Gravatar") is None)
+check("unknown platforms are not forced into a topic", _topic_for("Zzzq") is None)
+
+_sm = _summarise(_pp)
+check("summary scopes to the accounts you confirmed",
+      _sm["scope"] == "accounts you confirmed" and _sm["account_count"] == 1)
+check("summary always states its basis", "scope" in _sm and _sm["caveat"])
+
+# With nothing attributed it must decline to characterise rather than guess.
+_blank = Profile(seeds=[Identifier.parse("jdoe")])
+merge_evidence(_blank, "jdoe", [
+    Evidence("sherlock", "Reddit", "https://reddit.com/u/jdoe", Status.FOUND, 0.45, {})])
+score_accounts(_blank); harvest_identity(_blank); cluster_personas(_blank)
+_bs = _summarise(_blank)
+check("declines to characterise an unattributed handle", _bs["account_count"] == 0)
+check("and says why", "nothing to characterise" in _bs["headline"])
+
+# A tie between people must not be summarised as one person.
+_multi = Profile(seeds=[Identifier.parse("jdoe")])
+merge_evidence(_multi, "jdoe", [
+    Evidence("maigret", "GitHub", "https://github.com/jdoe", Status.FOUND, 0.7,
+             {"fullname": "Alice Smith"}),
+    Evidence("maigret", "Steam", "https://steamcommunity.com/id/jdoe", Status.FOUND,
+             0.7, {"fullname": "Bob Jones"})])
+score_accounts(_multi); harvest_identity(_multi); apply_corroboration(_multi)
+cluster_personas(_multi)
+check("an unresolved tie is not summarised as one person",
+      _summarise(_multi)["account_count"] == 0)
+
 # --- every runtime markup string must parse -------------------------------
 # A mismatched tag in the help text crashed the whole program, and the error
 # handler crashed again while trying to report it.

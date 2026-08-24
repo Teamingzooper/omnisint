@@ -258,6 +258,21 @@ def render_markdown(profile: Profile, meta: dict, min_conf: float = 0.35) -> str
         "",
     ]
 
+    sm = profile.summary()
+    out += ["## What they do", "", sm["headline"], ""]
+    if sm["topics"]:
+        out += ["| Area | Accounts | Platforms |", "|---|---|---|"]
+        out += [f"| {t['topic']} | {t['count']} | {', '.join(t['platforms'][:8])} |"
+                for t in sm["topics"]]
+        out.append("")
+    for label, values in (("Roles", sm["roles"]), ("Employers", sm["employers"]),
+                          ("Schools", sm["schools"]), ("Locations", sm["locations"])):
+        if values:
+            out.append(f"- **{label}:** {_md(' · '.join(values))}")
+    if sm["bio_terms"]:
+        out.append("- **Bio mentions:** " + _md(", ".join(t["term"] for t in sm["bio_terms"][:10])))
+    out += ["", f"*Based on {sm['account_count']} {sm['scope']}. {sm['caveat']}*", ""]
+
     names = corroborated_names(profile)
     if names or profile.locations:
         out += ["## Identity attributes", "",
@@ -396,6 +411,7 @@ def render_html(profile: Profile, meta: dict, min_conf: float = 0.35) -> str:
         warn_html = f"<h2>Caveats</h2><ul class='warn'>{items}</ul>"
 
     from .brand import svg_logo
+    _sm = profile.summary()
     return f"""<!doctype html><meta charset="utf-8">
 <title>Omnisint — {e(', '.join(s.value for s in profile.seeds))}</title>
 <style>
@@ -423,6 +439,14 @@ h1{{font-size:1.35rem;color:var(--mut);font-weight:600;letter-spacing:.01em}}
 <p class="meta">Target: {seeds}<br>Generated {datetime.now(timezone.utc):%Y-%m-%d %H:%M UTC}
  · Case {e(str(meta.get('case') or '—'))} · Operator {e(str(meta.get('operator') or '—'))}</p>
 <div class="note">{e(DISCLAIMER)}</div>
+<h2>What they do</h2>
+<p>{e(_sm['headline'])}</p>
+<div class="wrap"><table><tr><th>Area</th><th>Accounts</th><th>Platforms</th></tr>
+{''.join(f"<tr><td>{e(t['topic'])}</td><td>{t['count']}</td>"
+         f"<td>{e(', '.join(t['platforms'][:8]))}</td></tr>" for t in _sm['topics'])
+  or '<tr><td colspan=3>No platform implies a particular interest.</td></tr>'}
+</table></div>
+<p class="meta">Based on {_sm['account_count']} {e(_sm['scope'])}. {e(_sm['caveat'])}</p>
 <h2>Identity attributes</h2>
 <div class="wrap"><table><tr><th>Attribute</th><th>Value</th><th>Seen on</th></tr>
 {ident_rows or '<tr><td colspan=3>None extracted.</td></tr>'}</table></div>

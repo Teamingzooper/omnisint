@@ -135,6 +135,9 @@ class Account:
     persona_note: str | None = None
     #: Secondary terms (employer, school …) found in this account's data.
     corroborated: list[str] = field(default_factory=list)
+    #: The operator asserted this account belongs to the subject. That is a
+    #: human judgement, not tool evidence, and is labelled as such everywhere.
+    pinned: bool = False
 
     @property
     def level(self) -> str:
@@ -168,6 +171,7 @@ class Account:
             "persona": self.persona,
             "persona_note": self.persona_note,
             "corroborated_by": self.corroborated,
+            "pinned": self.pinned,
             "avatar": self.avatar,
             "metadata": self.metadata,
             "corroboration": [
@@ -196,6 +200,8 @@ class Profile:
     seeds: list[Identifier] = field(default_factory=list)
     #: Context terms used only to confirm identity, never searched alone.
     secondary: list[str] = field(default_factory=list)
+    #: Accounts the operator stacked into one identity, as {platform, url, …}.
+    pinned: list[dict[str, Any]] = field(default_factory=list)
     accounts: dict[str, Account] = field(default_factory=dict)  # keyed platform|url
     identifiers: dict[str, Identifier] = field(default_factory=dict)
     names: dict[str, set[str]] = field(default_factory=dict)      # name -> sources
@@ -211,6 +217,11 @@ class Profile:
     gaps: dict[str, dict[str, int]] = field(default_factory=dict)
     warnings: list[str] = field(default_factory=list)
 
+    def summary(self) -> dict[str, Any]:
+        """What the attributed accounts suggest about the person."""
+        from .summary import summarise
+        return summarise(self)
+
     def sorted_accounts(self) -> list[Account]:
         return sorted(
             self.accounts.values(),
@@ -221,6 +232,7 @@ class Profile:
         return {
             "seeds": [asdict(s) for s in self.seeds],
             "secondary_terms": self.secondary,
+            "pinned": self.pinned,
             "identity": {
                 "names": {k: sorted(v) for k, v in self.names.items()},
                 "locations": {k: sorted(v) for k, v in self.locations.items()},
@@ -232,6 +244,7 @@ class Profile:
                 for i in self.identifiers.values()
             ],
             "personas": self.personas,
+            "summary": self.summary(),
             "accounts": [a.to_dict() for a in self.sorted_accounts()],
             "infrastructure": self.infrastructure,
             "phones": self.phones,

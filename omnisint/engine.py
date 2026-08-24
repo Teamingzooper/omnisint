@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Callable
 
 from .config import ScanOptions
-from .correlate import (apply_corroboration, cluster_personas,
+from .correlate import (apply_corroboration, apply_pins, cluster_personas,
                         harvest_identity, merge_evidence, score_accounts,
                         summarize_gaps)
 from .models import Identifier, IdType, Profile
@@ -29,8 +29,10 @@ class Engine:
 
     # -- public -----------------------------------------------------------
     def scan(self, seeds: list[Identifier], workdir: Path | None = None,
-             secondary: list[str] | None = None) -> Profile:
-        profile = Profile(seeds=list(seeds), secondary=list(secondary or []))
+             secondary: list[str] | None = None,
+             pinned: list[dict] | None = None) -> Profile:
+        profile = Profile(seeds=list(seeds), secondary=list(secondary or []),
+                          pinned=list(pinned or []))
         temp_root = workdir is None
         root = Path(workdir) if workdir else Path(tempfile.mkdtemp(prefix="omnisint-"))
         root.mkdir(parents=True, exist_ok=True)
@@ -69,6 +71,7 @@ class Engine:
             harvest_identity(profile)
             apply_corroboration(profile)
             cluster_personas(profile)
+            apply_pins(profile)
             summarize_gaps(profile)
             for ident in seeds:
                 profile.identifiers.setdefault(ident.key(), ident)

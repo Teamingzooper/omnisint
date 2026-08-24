@@ -20,7 +20,62 @@ async function api(path, opts = {}) {
 const state = {
   runId: null, profile: null, tab: "accounts",
   rows: [], selected: null, sort: { key: "confidence", dir: -1 }, poll: null,
+  // Accounts the operator stacked into one identity, keyed by URL||platform.
+  pins: new Map(),
 };
+
+const pinKey = (a) => (a.url || a.platform || "").toLowerCase();
+const isPinned = (a) => state.pins.has(pinKey(a));
+
+/* A pin carries the anchors a rescan can actually use: the handle to search,
+   the name to match personas against, and context terms to cross-check. */
+function pinFrom(a) {
+  const m = a.metadata || {};
+  const terms = [];
+  for (const k of ["company", "employer", "organization", "school",
+                   "university", "location", "clan", "job_title"]) {
+    const v = m[k];
+    if (v && String(v).trim() && terms.length < 6) terms.push(String(v).trim());
+  }
+  return {
+    platform: a.platform, url: a.url || "",
+    username: m.username || m.login || m.handle || m.screen_name || "",
+    fullname: m.fullname || "",
+    terms,
+  };
+}
+
+function togglePin(a) {
+  const k = pinKey(a);
+  if (state.pins.has(k)) state.pins.delete(k);
+  else state.pins.set(k, pinFrom(a));
+  renderPins();
+  render();
+}
+
+function renderPins() {
+  const host = $("pins"); clear(host);
+  const n = state.pins.size;
+  $("pinCount").textContent = n ? `(${n})` : "";
+  $("rescan").disabled = n === 0;
+  $("clearPins").disabled = n === 0;
+  if (!n) {
+    host.appendChild(el("li", "hint",
+      "Press + on an account to stack it into one identity."));
+    return;
+  }
+  for (const [k, pin] of state.pins) {
+    const li = el("li");
+    const x = el("span", "badge", "✕");
+    x.title = "remove";
+    x.onclick = () => { state.pins.delete(k); renderPins(); render(); };
+    li.appendChild(x);
+    li.appendChild(document.createTextNode(" " + pin.platform));
+    const extra = [pin.fullname, pin.username].filter(Boolean).join(" · ");
+    if (extra) li.appendChild(el("span", "type", extra));
+    host.appendChild(li);
+  }
+}
 
 /* -- helpers ------------------------------------------------------------ */
 const pct = (x) => `${Math.round((x || 0) * 100)}%`;
@@ -32,6 +87,9 @@ function el(tag, cls, text) {
 }
 function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
 function attrClass(a) {
+  if (isPinned(a) || a.pinned)
+    notes.unshift({ text: "★ Confirmed by you as your subject — your judgement, "
+                        + "not a tool's conclusion.", tone: "good" });
   if (a.corroborated_by && a.corroborated_by.length) return "subject";
   if (a.attribution_level === "likely different person") return "other";
   return a.level;
@@ -183,6 +241,9 @@ function showAccount(a) {
   ];
   if (a.persona) notes.push({ text: `   identity: ${a.persona} — ${a.persona_note || ""}`,
                               tone: a.attribution_level === "likely different person" ? "warn" : "" });
+  if (isPinned(a) || a.pinned)
+    notes.unshift({ text: "★ Confirmed by you as your subject — your judgement, "
+                        + "not a tool's conclusion.", tone: "good" });
   if (a.corroborated_by && a.corroborated_by.length)
     notes.push({ text: `   ± corroborated by: ${a.corroborated_by.join(", ")}`, tone: "good" });
   if (a.url) notes.push({ text: `   ${a.url}` });
@@ -192,6 +253,16 @@ function showAccount(a) {
 /* -- views -------------------------------------------------------------- */
 function viewAccounts() {
   grid([
+    { key: "pin", label: "+", width: "26px", sortable: false, cls: "pincell",
+      render: r => {
+        const b = el("button", "pinbtn" + (isPinned(r) ? " on" : ""),
+                     isPinned(r) ? "✓" : "+");
+        b.title = isPinned(r)
+          ? "Confirmed as your subject — click to unstack"
+          : "Stack this account into one identity";
+        b.onclick = (e) => { e.stopPropagation(); togglePin(r); };
+        return b;
+      } },
     { key: "confidence", label: "Exists", width: "62px", cls: "num",
       render: r => pct(r.confidence) },
     { key: "attribution", label: "Same?", width: "78px", cls: "num",
@@ -209,7 +280,50 @@ function viewAccounts() {
         ? "± " + a.corroborated_by.join(", ")
         : Object.entries(a.metadata || {}).filter(([k]) => k !== "avatar")
             .slice(0, 2).map(([k, v]) => `${k}=${v}`).join(", "),
-    })), showAccount, attrClass);
+    })), showAccount, r => (isPinned(r) ? "pinned" : attrClass(r)));
+}
+
+function summaryBlock() {
+  const sm = state.profile.summary;
+  if (!sm) return null;
+  const box = el("div", "summary");
+  box.appendChild(el("div", "sumhead", sm.headline));
+
+  const meta = el("div", "summeta");
+  const add = (label, values) => {
+    if (!values || !values.length) return;
+    const d = el("div");
+    d.appendChild(el("b", null, label + ": "));
+    d.appendChild(document.createTextNode(values.join(" · ")));
+    meta.appendChild(d);
+  };
+  add("Roles", sm.roles); add("Employers", sm.employers);
+  add("Schools", sm.schools); add("Locations", sm.locations);
+  add("Sites", sm.websites);
+  if (sm.bio_terms && sm.bio_terms.length)
+    add("Bio mentions", sm.bio_terms.slice(0, 10).map(t => t.n > 1 ? `${t.term} ×${t.n}` : t.term));
+  if (meta.childNodes.length) box.appendChild(meta);
+
+  if (sm.topics && sm.topics.length) {
+    const bars = el("div", "topics");
+    const max = sm.topics[0].count || 1;
+    sm.topics.forEach(t => {
+      const row = el("div", "topicrow");
+      row.appendChild(el("span", "tname", t.topic));
+      const track = el("span", "tbar");
+      const fill = el("span", "tfill");
+      fill.style.width = `${Math.max(6, (t.count / max) * 100)}%`;
+      track.appendChild(fill);
+      row.appendChild(track);
+      row.appendChild(el("span", "tnum", String(t.count)));
+      row.title = t.platforms.join(", ");
+      bars.appendChild(row);
+    });
+    box.appendChild(bars);
+  }
+  box.appendChild(el("div", "sumbasis", `Based on ${sm.account_count} ${sm.scope}.`));
+  box.appendChild(el("div", "hint", sm.caveat));
+  return box;
 }
 
 function viewIdentity() {
@@ -218,6 +332,7 @@ function viewIdentity() {
     rows.push({ kind, value, seen: seen.join(", "), n: seen.length }));
   push("Name", p.identity.names); push("Location", p.identity.locations);
   push("Bio", p.identity.bios); push("Avatar", p.identity.avatars);
+  const block = summaryBlock();
   grid([
     { key: "kind", label: "Attribute", width: "80px" },
     { key: "n", label: "Seen", width: "50px", cls: "num" },
@@ -226,6 +341,7 @@ function viewIdentity() {
   ], rows, r => detail(`Detail — ${r.kind}`, [["value", r.value], ["platforms", r.seen]],
       [{ text: r.n > 1 ? `✔ corroborated on ${r.n} platforms` : "seen on one platform only",
          tone: r.n > 1 ? "good" : "warn" }]));
+  if (block) $("grid").insertBefore(block, $("grid").firstChild);
 }
 
 function viewPersonas() {
@@ -451,18 +567,22 @@ async function poll() {
   }
 }
 
-async function startScan() {
+async function startScan(withPins) {
   const raw = $("targets").value.trim();
-  if (!raw) { status("Type something to scan first."); return; }
+  const pins = withPins ? [...state.pins.values()] : [];
+  if (!raw && !pins.length) { status("Type something to scan first."); return; }
   $("go").disabled = true; $("stopHint").disabled = false;
   $("export").disabled = true;
   clear($("log")); $("bar").style.width = "0";
   state.profile = null; state.selected = null;
   clear($("grid")); $("grid").appendChild(el("div", "empty", "Scanning…"));
-  status("Starting…");
+  status(pins.length
+    ? `Starting — rescanning around ${pins.length} confirmed account(s)…`
+    : "Starting…");
   try {
     const { id } = await api("/api/scan", { method: "POST", body: JSON.stringify({
       targets: raw,
+      pinned: pins,
       preset: $("preset").value,
       options: { hudson: $("hudson").checked, darkweb: $("darkweb").checked,
                  nsfw: $("nsfw").checked },
@@ -478,7 +598,9 @@ async function startScan() {
 }
 
 /* -- wiring ------------------------------------------------------------- */
-$("go").onclick = startScan;
+$("rescan").onclick = () => startScan(true);
+$("clearPins").onclick = () => { state.pins.clear(); renderPins(); render(); };
+$("go").onclick = () => startScan(false);
 $("targets").addEventListener("keydown", e => { if (e.key === "Enter") startScan(); });
 
 $("export").onclick = async () => {
@@ -533,6 +655,7 @@ $("helpBtn").onclick = () => dialog("About Omnisint", b => {
 
 (async function boot() {
   renderTabs();
+  renderPins();
   try {
     const meta = await api("/api/meta");
     $("case").textContent = `case ${meta.case || "—"} · ${meta.operator}`;

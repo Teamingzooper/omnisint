@@ -120,6 +120,7 @@ class Viewer:
 
         sections = [
             Section("overview", "Overview", lambda: panels.overview(p)),
+            Section("summary", "What they do", lambda: panels.summary(p)),
             Section("identity", "Identity", lambda: panels.identity(p),
                     badge=str(len(p.names))),
             Section("personas", "Identities", lambda: panels.personas(p),

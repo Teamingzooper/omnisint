@@ -73,6 +73,37 @@ def tool_coverage(profile: Profile) -> Panel:
                  box=box.ROUNDED)
 
 
+def summary(profile: Profile) -> Panel:
+    """What the attributed accounts suggest the subject does."""
+    sm = profile.summary()
+    from rich.console import Group
+
+    parts = [f"[bold]{sm['headline']}[/bold]", ""]
+    if sm["topics"]:
+        width = max(len(t["topic"]) for t in sm["topics"])
+        top = sm["topics"][0]["count"] or 1
+        for t in sm["topics"]:
+            bar = "█" * max(1, round(20 * t["count"] / top))
+            parts.append(f"  {t['topic']:<{width}}  [cyan]{bar}[/cyan] "
+                         f"{t['count']}   [dim]{', '.join(t['platforms'][:5])}[/dim]")
+        parts.append("")
+    for label, values in (("Roles", sm["roles"]), ("Employers", sm["employers"]),
+                          ("Schools", sm["schools"]), ("Locations", sm["locations"]),
+                          ("Sites", sm["websites"])):
+        if values:
+            parts.append(f"  [bold]{label}:[/bold] {' · '.join(values)}")
+    if sm["bio_terms"]:
+        terms = ", ".join(t["term"] + (f" ×{t['n']}" if t["n"] > 1 else "")
+                          for t in sm["bio_terms"][:10])
+        parts.append(f"  [bold]Bio mentions:[/bold] {terms}")
+    parts += ["", f"[dim]Based on {sm['account_count']} {sm['scope']}.[/dim]",
+              f"[dim]{sm['caveat']}[/dim]"]
+    return Panel(Group(*[__import__("rich.text", fromlist=["Text"]).Text.from_markup(x)
+                         for x in parts]),
+                 title="[bold]What they do[/bold] [dim](inferred)[/dim]",
+                 border_style="magenta", box=box.ROUNDED)
+
+
 def identity(profile: Profile) -> Panel:
     t = Table(box=box.SIMPLE, header_style="bold", expand=True)
     t.add_column("Attribute", style="bold", no_wrap=True, width=10)

@@ -125,6 +125,7 @@ legend { padding: 0 3px; }
 .pane-targets  { flex: 0 0 152px; }
 .pane-identity { flex: 0 0 128px; }
 .pane-log      { flex: 1 1 auto; }
+.pane-pins     { flex: 0 0 138px; }
 .pane-grid     { flex: 1 1 60%; }
 .pane-detail   { flex: 1 1 40%; }
 .footbar { padding: 6px; border-top: 1px solid var(--shadow); background: var(--face); }
@@ -218,6 +219,33 @@ ul.list li.sel .type { color: #b8c8ff; }
 .dialog .titlebar { margin: -1px -1px 6px; }
 .dialog .content { padding: 8px 10px 10px; }
 .dialog .row { display: flex; gap: 6px; justify-content: flex-end; margin-top: 10px; }
+
+/* -- stacking accounts into one identity --------------------------------- */
+.pinbar { display: flex; gap: 4px; padding: 3px; flex: 0 0 auto; }
+.pinbar button { flex: 1 1 auto; }
+td.pincell { padding: 1px 2px; text-align: center; }
+button.pinbtn {
+  min-width: 18px; padding: 0 4px; line-height: 15px; font-weight: bold;
+}
+button.pinbtn.on { color: #006000; }
+table.grid tr.pinned { background: #bde3ff; }
+table.grid tr.pinned td:nth-child(3) { font-weight: bold; }
+
+/* -- identity summary ---------------------------------------------------- */
+.summary { padding: 8px 10px; background: var(--face);
+  border-bottom: 2px solid var(--shadow); font-family: Tahoma, sans-serif; }
+.sumhead { font-size: 12px; font-weight: bold; margin-bottom: 5px; }
+.summeta { margin-bottom: 6px; }
+.summeta div { margin: 1px 0; }
+.sumbasis { margin-top: 6px; font-style: italic; }
+.topics { margin-top: 4px; }
+.topicrow { display: flex; align-items: center; gap: 6px; margin: 2px 0; }
+.tname { width: 190px; flex: 0 0 auto; }
+.tbar { flex: 1 1 auto; max-width: 340px; height: 11px; padding: 1px;
+  border: 2px solid; border-color: var(--shadow) var(--light) var(--light) var(--shadow);
+  background: var(--window); }
+.tfill { display: block; height: 100%; background: var(--title); }
+.tnum { width: 26px; text-align: right; }
 
 .hint { color: var(--dim); }
 .nowrap { white-space: nowrap; }

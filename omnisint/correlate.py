@@ -491,3 +491,30 @@ def apply_corroboration(profile: Profile) -> None:
             "appeared in any account's data. That is not evidence against a "
             "match — most platforms expose no bio or employer field at all."
         )
+
+
+def apply_pins(profile: Profile) -> None:
+    """Honour accounts the operator stacked into one identity.
+
+    A pin is the operator saying "this is my subject". It is stronger than
+    anything the tools can conclude, so it wins outright — but it is recorded
+    as *their* assertion, so a reader can tell inference from judgement.
+    """
+    if not profile.pinned:
+        return
+    wanted = {canonical_url(p.get("url")) or normalize_platform(p.get("platform", ""))
+              for p in profile.pinned}
+    hits = 0
+    for acct in profile.accounts.values():
+        key = canonical_url(acct.url) or normalize_platform(acct.platform)
+        if key not in wanted:
+            continue
+        acct.pinned = True
+        acct.attribution = 0.99
+        acct.persona_note = "confirmed by you"
+        hits += 1
+    if hits:
+        profile.warnings.append(
+            f"identity: {hits} account(s) are marked as your subject because "
+            "you confirmed them, not because a tool concluded it. They are "
+            "labelled 'confirmed by you' throughout.")

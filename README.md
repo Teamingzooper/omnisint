@@ -78,6 +78,55 @@ sortable table with coloured rows.
 └───────────────────────────────────────────────────────────────────────────┘
 ```
 
+### Stacking accounts into one identity
+
+Each account row has a **+**. Pressing it says *this account is my subject* —
+and that is treated as your judgement, not a tool's conclusion: pinned
+accounts are labelled "confirmed by you" everywhere, and the report records
+that the attribution came from you.
+
+Press **⟳ Rescan** and the confirmed accounts become anchors:
+
+| From the pinned account | Becomes |
+|---|---|
+| its handle | a target searched in its own right |
+| its real name | the anchor persona clustering matches against |
+| its employer / school / location | secondary cross-check terms |
+
+So confirming one GitHub profile turns the next scan from "find `torvalds`"
+into "find `torvalds` and `Linus Torvalds`, cross-checked against Linux
+Foundation and Portland, OR" — which is what actually resolves a shared
+handle.
+
+### What they do
+
+The Identity tab opens with a characterisation inferred from *which*
+platforms the subject is on and what their bios say:
+
+```
+Most active in software development (2 accounts: GitHub, GitHubGist).
+also social / messaging (1). accounts created 2011–2017.
+  Employers: Linux Foundation
+  Locations: Portland, OR
+  software development  ████████████████████ 2
+  social / messaging    ██████████           1
+Based on 4 accounts attributed to your subject.
+```
+
+Eight code-hosting accounts and a Kaggle profile say something a list of URLs
+does not. It maps ~300 platforms onto interest areas, ignores the ones
+everybody has (Gravatar, Linktree), and pulls roles, employers, schools,
+locations and frequent bio terms out of the profile fields.
+
+**It only ever summarises accounts believed to be one person** — pinned
+first, then those attributed to your subject, then the primary identity. If
+nothing is attributed yet it says so instead of guessing, because
+characterising a handle that 92 people share would produce confident
+nonsense. The scope it used is printed underneath every time.
+
+The same summary appears in the terminal viewer ("What they do") and in the
+Markdown and HTML exports.
+
 Rows are coloured the way Wireshark colours packets: **green** = corroborated
 as your subject, **red** = probably a different person, yellow/blue = weaker
 existence evidence. Click any row to see every field a tool returned in the
