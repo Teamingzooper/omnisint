@@ -97,8 +97,23 @@ handled, but `ijkl` never depends on escape sequences arriving at all.
 | Tools | what ran, what failed, what timed out |
 | Caveats | everything unchecked, rate-limited, or uncertain |
 
+`q` closes the report and returns you to the prompt, with a one-line recap so
+you can see what you found without reopening it:
+
+```
+torvalds — 136 accounts · 4 likely your subject · 17 likely other people
+  identity: Alex Rivera
+  view reopen report · export save to disk · sec <term> add a cross-check · drop all start over
+```
+
 Nothing is written to disk unless you ask. `export [dir]` writes JSON + HTML
 + Markdown (mode 600) to `~/omnisint-reports/` or a directory you name.
+
+**Ctrl-C** cancels the current line, or aborts a running scan and hands you
+back the prompt with your identifiers still loaded. It does not exit — `quit`
+does that. A scan you interrupt is marked as partial in the report, because
+tools that never finished contributed nothing, which is not the same as them
+finding nothing.
 
 ## Depth
 
@@ -111,7 +126,28 @@ Nothing is written to disk unless you ask. `export [dir]` writes JSON + HTML
 
 These work as launch flags (`omnisint -q`) and as console commands.
 
-Other console commands: `sec`, `show`, `drop`, `expand`, `pivot N`,
+## Following what a scan finds
+
+Scans surface new identifiers — an email on a GitHub profile, a linked handle
+on Keybase. Those are the strongest leads a scan produces and the easiest to
+miss in a long report, so they are offered explicitly when the report closes:
+
+```
+3 new identifier(s) found during this scan
+  1. jdoe@noreply.codeberg.org  (email, via user-scanner:Codeberg)
+  2. j_doe                      (username, via maigret:Keybase)
+  3. jdoe2                      (username, via maigret:GitHub)
+
+Search these too? [y]es / [n]o / numbers (e.g. 1,3):
+```
+
+Emails are listed first — an address is a far stronger lead than a handle
+scraped off a profile page. Declining is remembered, so you are not asked
+about the same ones after every scan; `found` re-opens the list. It asks
+rather than pivoting automatically because each extra identifier multiplies
+the next scan's cost, and some of what turns up is junk.
+
+Other console commands: `sec`, `show`, `drop`, `expand`, `pivot N`, `found`,
 `set <opt> <val>`, `opts`, `tools`, `view`, `export`, `help`, `quit`.
 Bare Enter scans whatever is loaded.
 

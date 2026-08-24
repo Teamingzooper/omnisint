@@ -68,6 +68,8 @@ def build_parser() -> argparse.ArgumentParser:
                        help="run only these adapters")
     tools.add_argument("--exclude", default="", metavar="A,B",
                        help="skip these adapters")
+    tools.add_argument("--hudson", action="store_true",
+                       help="also check infostealer breach exposure (slow)")
     tools.add_argument("--darkweb", action="store_true",
                        help="also search hidden-service indexes (needs Tor; slow)")
     tools.add_argument("--active", action="store_true",
@@ -245,7 +247,8 @@ def cmd_scan(args, console) -> int:
         tor=args.tor,
         delay=args.delay,
         only={s.strip() for s in args.only.split(",") if s.strip()}
-             | ({"darkweb"} if args.darkweb else set()),
+             | ({"darkweb"} if args.darkweb else set())
+             | ({"hudsonrock"} if args.hudson else set()),
         exclude={s.strip() for s in args.exclude.split(",") if s.strip()},
         min_confidence=args.min_confidence,
         keep_raw=args.keep_raw,
@@ -255,6 +258,9 @@ def cmd_scan(args, console) -> int:
         setattr(opts, key, value)
     if args.pivot:
         opts.pivot_depth = args.pivot
+
+    # Defined before the audit record below, which references it.
+    secondary = [t.strip() for t in args.secondary.split(",") if t.strip()]
 
     engine = Engine(opts)
     if not engine.adapters:
@@ -297,7 +303,6 @@ def cmd_scan(args, console) -> int:
                                TimeElapsedColumn)
 
     profile = None
-    secondary = [t.strip() for t in args.secondary.split(",") if t.strip()]
     if args.quiet:
         profile = engine.scan(seeds, secondary=secondary)
     else:

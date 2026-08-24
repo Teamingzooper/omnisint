@@ -35,10 +35,15 @@ searching "Acme Corp" across 3000 sites.
 Put both on one line with a [bold]semicolon[/bold], or add them later with [cyan]sec[/cyan]:
 
     [cyan]alex rivera, mjs[/cyan][bold];[/bold] [magenta]youtube, field trip[/magenta]
-    [cyan]sec Acme Corp, MIT, Portland[/magenta]
+    [cyan]sec Acme Corp, MIT, Portland[/cyan]
 
 An account whose bio names your employer is your subject. That beats any
 amount of username matching.
+
+[bold]After a scan[/bold] the report opens full-screen. [bold]j[/bold]/[bold]l[/bold] change section,
+[bold]i[/bold]/[bold]k[/bold] scroll, [bold]q[/bold] returns you here. Nothing is written to disk unless
+you run [cyan]export[/cyan]. [bold]Ctrl-C[/bold] cancels the current line or an in-progress
+scan — it does not exit; use [cyan]quit[/cyan] for that.
 
 [bold]Commands[/bold]
   [cyan]scan[/cyan] / [cyan]go[/cyan]        run against everything collected so far
@@ -65,6 +70,7 @@ amount of username matching.
   [cyan]set <opt> <v>[/cyan]   timeout, workers, top-sites, min-confidence
   [cyan]opts[/cyan]            show current settings
   [cyan]tools[/cyan]           which backends are installed
+  [cyan]found[/cyan]           identifiers the scan discovered — search them too
   [cyan]view[/cyan] / [cyan]last[/cyan]     reopen the last report in the browser
   [cyan]export [dir][/cyan]    write JSON + HTML + Markdown (never automatic)
   [cyan]help[/cyan]  ·  [cyan]quit[/cyan]
@@ -79,6 +85,7 @@ _TOGGLE_FLAGS = {
     "-d": "deep", "--deep": "deep",
     "-s": "standard", "--standard": "standard",
     "--nsfw": "nsfw", "--active": "active", "--darkweb": "darkweb",
+    "--hudson": "hudson",
     "--passive": "passive",
 }
 _VALUE_FLAGS = {
@@ -102,7 +109,7 @@ _COMMANDS = {"scan", "go", "run", "show", "drop", "deep", "pivot", "set",
              "opts", "options", "tools", "last", "save", "help", "?", "quit",
              "exit", "q", "clear", "expand", "quick", "standard", "verbose",
              "-q", "-d", "-v", "-s", "export", "view", "sec", "secondary",
-             "+"}
+             "+", "found"}
 
 
 class Console:
@@ -112,6 +119,9 @@ class Console:
         self.auth = auth
         self.targets: list[Identifier] = []
         self.secondary: list[str] = []
+        #: Discovered identifiers the operator has already been offered and
+        #: declined, so we stop asking about the same ones every scan.
+        self.declined: set[str] = set()
         self.last = None
         self.last_meta: dict = {}
         self.outdir = outdir or (Path.home() / "omnisint-reports")
@@ -219,6 +229,10 @@ class Console:
             elif name == "passive":
                 self.opts.passive = True
                 self.c.print("  [green]passive mode[/green]")
+            elif name == "hudson":
+                self.opts.only = set(self.opts.only) | {"hudsonrock"}
+                self.c.print("  [green]breach-exposure check enabled[/green]"
+                             "[dim] (slow)[/dim]")
             elif name == "darkweb":
                 self.opts.only = set(self.opts.only) | {"darkweb"}
                 self.c.print("  [green]dark-web search enabled[/green][dim] "
@@ -419,7 +433,18 @@ class Console:
                     prog.update(task, description=message)
 
             engine.progress = on_progress
-            profile = engine.scan(self.targets, secondary=self.secondary)
+            try:
+                profile = engine.scan(self.targets, secondary=self.secondary)
+            except KeyboardInterrupt:
+                profile = None
+
+        if profile is None:
+            self.c.print(
+                "\n[yellow]Scan interrupted.[/yellow] [dim]Your identifiers are "
+                "still loaded — press Enter to run it again, or[/dim] "
+                "[cyan]quit[/cyan][dim] to exit.[/dim]")
+            audit("console.scan.interrupted", self.auth, run_id=run_id)
+            return
 
         self.last = profile
         self.last_meta = {
@@ -449,8 +474,116 @@ class Console:
             self.c.print("[dim]No scan yet.[/dim]")
             return
         Viewer(self.last, self.c, on_export=lambda: self._export()).run()
-        self.c.print("[dim]type [cyan]view[/cyan] to reopen the report, "
-                     "[cyan]export[/cyan] to write it to disk[/dim]")
+        self._recap()
+        self._offer_discovered()
+
+    def _recap(self) -> None:
+        """Compact summary printed on returning from the full-screen viewer.
+
+        The viewer clears the screen on exit, so without this the operator
+        lands on an empty terminal and it looks like the scan was lost.
+        """
+        if self.last is None:
+            return
+        p = self.last
+        accounts = p.sorted_accounts()
+        same = sum(1 for a in accounts if a.attribution_level == "same person")
+        diff = sum(1 for a in accounts if a.attribution_level == "likely different person")
+        primary = next((x["name"] for x in p.personas if x["primary"]), None)
+        seeds = ", ".join(s.value for s in p.seeds)
+
+        self.c.print(
+            f"\n[bold]{seeds}[/bold] — [bold]{len(accounts)}[/bold] accounts · "
+            f"[green]{same} likely your subject[/green] · "
+            f"[red]{diff} likely other people[/red]"
+        )
+        if primary:
+            self.c.print(f"  identity: [bold green]{primary}[/bold green]")
+        elif p.personas:
+            self.c.print("  [yellow]identity unresolved[/yellow][dim] — "
+                         "several names, none better corroborated[/dim]")
+        self.c.print(
+            "  [cyan]view[/cyan][dim] reopen report · [/dim]"
+            "[cyan]export[/cyan][dim] save to disk · [/dim]"
+            "[cyan]sec <term>[/cyan][dim] add a cross-check and rescan · [/dim]"
+            "[cyan]drop all[/cyan][dim] start over[/dim]\n"
+        )
+
+    def discovered(self) -> list[Identifier]:
+        """Identifiers the tools turned up that we have not searched yet."""
+        if self.last is None:
+            return []
+        loaded = {t.key() for t in self.targets}
+        out: list[Identifier] = []
+        for ident in self.last.identifiers.values():
+            if ident.origin == "input" or ident.key() in loaded:
+                continue
+            if ident.key() in self.declined:
+                continue
+            if ident.type not in (IdType.USERNAME, IdType.EMAIL):
+                continue
+            out.append(ident)
+        # Emails first: an address is a far stronger lead than a handle
+        # scraped off a profile page.
+        out.sort(key=lambda i: (i.type is not IdType.EMAIL, i.value.lower()))
+        return out
+
+    def _offer_discovered(self) -> None:
+        """Show identifiers found mid-scan and offer to search them too.
+
+        These are the highest-value leads a scan produces — an email on a
+        GitHub profile, a linked handle on Keybase — and they are easy to
+        miss in a long report. Asking is better than pivoting automatically:
+        each one multiplies the next scan's cost, and some are junk.
+        """
+        found = self.discovered()
+        if not found:
+            return
+
+        self.c.print(f"[bold magenta]{len(found)} new identifier(s) found "
+                     f"during this scan[/bold magenta]")
+        for n, ident in enumerate(found, 1):
+            tag = ("[bold]email[/bold]" if ident.type is IdType.EMAIL
+                   else "username")
+            self.c.print(f"  [magenta]{n}.[/magenta] [bold]{ident.value}[/bold]"
+                         f"  [dim]({tag}, via {ident.origin})[/dim]")
+
+        try:
+            answer = input("\nSearch these too? [y]es / [n]o / numbers "
+                           "(e.g. 1,3): ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            self.c.print()
+            return
+
+        if answer in ("n", "no", "", "q"):
+            self.declined.update(i.key() for i in found)
+            self.c.print("[dim]skipped — type[/dim] [cyan]found[/cyan]"
+                         "[dim] to see them again[/dim]\n")
+            return
+
+        if answer in ("y", "yes", "a", "all"):
+            chosen = found
+        else:
+            picked = set()
+            for piece in answer.replace(" ", ",").split(","):
+                if piece.isdigit() and 1 <= int(piece) <= len(found):
+                    picked.add(int(piece))
+            if not picked:
+                self.c.print("[yellow]Did not understand that.[/yellow] "
+                             "[dim]Nothing added.[/dim]\n")
+                return
+            chosen = [found[n - 1] for n in sorted(picked)]
+            self.declined.update(
+                i.key() for i in found if i not in chosen)
+
+        for ident in chosen:
+            # Re-seed as input so it is searched in its own right rather
+            # than inheriting the pivot depth that produced it.
+            self.targets.append(Identifier(ident.value, ident.type,
+                                           origin="input", depth=0))
+            self.c.print(f"  [green]+[/green] {ident.value}")
+        self.c.print(f"\n[dim]{len(chosen)} added — press Enter to scan, or "
+                     "add more first.[/dim]\n")
 
     def _export(self, arg: str | None = None) -> None:
         if self.last is None:
@@ -463,7 +596,7 @@ class Console:
             "".join(ch for ch in t.value if ch.isalnum() or ch in "-_.@")[:40]
             for t in self.last.seeds[:3]
         ) or "scan"
-        base = outdir / f"{slug}-{stamp}"
+        stem = f"{slug}-{stamp}"
 
         written = []
         for suffix, text in (
@@ -471,7 +604,9 @@ class Console:
             (".html", render_html(self.last, self.last_meta, 0.0)),
             (".md", render_markdown(self.last, self.last_meta, 0.0)),
         ):
-            path = base.with_suffix(suffix)
+            # String concatenation, not with_suffix: a dotted stem (any
+            # email address) makes with_suffix eat part of the name.
+            path = outdir / (stem + suffix)
             path.write_text(text)
             try:
                 path.chmod(0o600)   # a dossier is sensitive personal data
@@ -509,13 +644,27 @@ class Console:
         while True:
             try:
                 raw = input(f"{MARK} ").strip()
-            except (EOFError, KeyboardInterrupt):
+            except KeyboardInterrupt:
+                # Cancel the line, keep the session. Losing a loaded target
+                # list and a finished scan to a stray Ctrl-C is punishing.
+                self.c.print("\n[dim]cancelled — type[/dim] [cyan]quit[/cyan]"
+                             "[dim] to exit[/dim]")
+                continue
+            except EOFError:
                 self.c.print("\n[dim]bye[/dim]")
                 return 0
             if not raw:
                 # Bare Enter is the natural "go" once something is loaded.
                 if self.targets:
                     self._scan()
+                elif self.secondary:
+                    self.c.print(
+                        "[yellow]Only secondary terms are loaded.[/yellow] Those "
+                        "are cross-checks, never searched on their own — add a "
+                        "name, handle, email or phone to search for.")
+                else:
+                    self.c.print("[dim]Nothing loaded yet. Type what you know "
+                                 "(or[/dim] [cyan]help[/cyan][dim]).[/dim]")
                 continue
 
             parts = shlex.split(raw) if raw.count("'") % 2 == 0 else raw.split()
@@ -555,8 +704,21 @@ class Console:
                     self.c.print(f"[green]verbose "
                                  f"{'ON' if self.opts.verbose else 'off'}[/green]")
                 elif head == "pivot":
-                    self.opts.pivot_depth = int(rest[0]) if rest else (
-                        0 if self.opts.pivot_depth else 1)
+                    if rest:
+                        try:
+                            depth = int(rest[0])
+                        except ValueError:
+                            self.c.print(f"[yellow]pivot needs a number "
+                                         f"(got {rest[0]!r}).[/yellow] "
+                                         "[dim]e.g.[/dim] [cyan]pivot 1[/cyan]")
+                            continue
+                        if depth < 0:
+                            self.c.print("[yellow]pivot depth cannot be "
+                                         "negative.[/yellow]")
+                            continue
+                        self.opts.pivot_depth = depth
+                    else:
+                        self.opts.pivot_depth = 0 if self.opts.pivot_depth else 1
                     self.c.print(f"[green]pivot depth = "
                                  f"{self.opts.pivot_depth}[/green]")
                 elif head == "set":
@@ -574,11 +736,25 @@ class Console:
                     self._export(rest[0] if rest else None)
                 elif head == "view":
                     self._view()
+                elif head == "found":
+                    self.declined.clear()
+                    if not self.discovered():
+                        self.c.print("[dim]No unsearched identifiers from the "
+                                     "last scan.[/dim]")
+                    else:
+                        self._offer_discovered()
             except KeyboardInterrupt:
                 self.c.print("\n[yellow]interrupted — back to prompt[/yellow]")
             except Exception as exc:
-                # One bad command must never drop the operator's session.
-                self.c.print(f"[red]{type(exc).__name__}: {exc}[/red]")
+                # One bad command must never drop the operator's session, and
+                # a raw traceback is not a useful thing to show them. Escape
+                # the message: an exception whose text contains square
+                # brackets would otherwise be parsed as markup and raise
+                # again *inside* the handler, killing the session.
+                from rich.markup import escape as _escape
+                self.c.print(f"[red]That did not work:[/red] {_escape(str(exc))}")
+                self.c.print("[dim]type[/dim] [cyan]help[/cyan][dim] for the "
+                             "command list[/dim]")
 
     def _preset(self, name: str) -> None:
         # Preserve the operator's display and safety choices; a depth preset

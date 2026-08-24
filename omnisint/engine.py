@@ -99,7 +99,10 @@ class Engine:
             )
             return discovered
 
-        with ThreadPoolExecutor(max_workers=self.opts.workers) as pool:
+        # Not a `with` block: its __exit__ waits for every worker, so a
+        # Ctrl-C mid-scan would appear to hang instead of returning control.
+        pool = ThreadPoolExecutor(max_workers=self.opts.workers)
+        try:
             futures = {}
             for adapter, ident in jobs:
                 wd = root / f"{adapter.name}_{ident.type.value}_{abs(hash(ident.value)) % 10**8}"
@@ -141,6 +144,17 @@ class Engine:
                     f"{adapter.name} → {ident.value} "
                     f"({run.found} hit{'s' if run.found != 1 else ''}, {run.duration:.1f}s)",
                 )
+        except KeyboardInterrupt:
+            # Drop queued work and stop waiting. Tools already running are
+            # subprocesses we cannot pre-empt; they exit on their own.
+            pool.shutdown(wait=False, cancel_futures=True)
+            profile.warnings.insert(0, (
+                "scan interrupted — results below are partial. Tools that had "
+                "not finished contributed nothing, which is not the same as "
+                "them finding nothing."))
+            raise
+        finally:
+            pool.shutdown(wait=False)
 
         # Deduplicate discovered identifiers, keeping the shallowest origin.
         unique: dict[str, Identifier] = {}

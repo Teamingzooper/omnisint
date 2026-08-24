@@ -237,6 +237,116 @@ check("corroborated account reads as same person",
       gh.attribution >= 0.88 and gh.attribution_level == "same person")
 check("corroboration is recorded on the account", gh.corroborated == ["Acme Corp"])
 
+# --- console never dead-ends ----------------------------------------------
+print("\nconsole robustness")
+import io as _io3
+from rich.console import Console as _RC3
+from omnisint.config import ScanOptions as _SO
+from omnisint.ethics import Authorization as _Auth
+
+_buf = _io3.StringIO()
+_con = _Con(_RC3(file=_buf, width=90), _SO(),
+            _Auth(operator="t", basis="test", case="T"))
+# A recap before any scan must be a no-op, not a crash.
+_con._recap()
+check("recap with no scan is safe", _buf.getvalue() == "")
+# Commands that need a prior scan must report, not raise.
+for _cmd in (_con._view, lambda: _con._export(), _con._expand, _con._show):
+    _cmd()
+check("pre-scan commands do not raise", True)
+check("pre-scan commands explain themselves", "No scan yet" in _buf.getvalue())
+_con._add_secondary("")
+check("empty secondary shows usage", "usage:" in _buf.getvalue())
+_con._set("nonsense", "5")
+check("unknown setting is reported", "Unknown setting" in _buf.getvalue())
+_con._set("timeout", "abc")
+check("non-numeric setting is reported", "not a valid int" in _buf.getvalue())
+
+# --- every runtime markup string must parse -------------------------------
+# A mismatched tag in the help text crashed the whole program, and the error
+# handler crashed again while trying to report it.
+print("\nrich markup")
+import re as _re
+from rich.errors import MarkupError as _MErr
+from rich.markup import render as _render
+import omnisint.brand as _brand
+from omnisint.console import HELP as _HELP
+
+
+def _renders(text):
+    try:
+        _render(_re.sub(r"\{[^{}]*\}", "X", text))
+        return True
+    except _MErr:
+        return False
+
+
+check("console help renders", _renders(_HELP))
+for _w in (30, 60, 100, 200):
+    check(f"banner renders at width {_w}",
+          _renders(_brand.banner(_w, "1.0.0", 9, "CASE")))
+
+# The catch-all handler must escape: an exception message containing square
+# brackets would otherwise raise inside the handler that reports it.
+_b = _io3.StringIO()
+_c2 = _Con(_RC3(file=_b, width=90), _SO(), _Auth(operator="t", basis="x", case="C"))
+try:
+    _c2.c.print(f"[red]That did not work:[/red] "
+                f"{__import__('rich.markup', fromlist=['escape']).escape('closing tag [/magenta]')}")
+    _ok = True
+except Exception:
+    _ok = False
+check("error text with markup does not crash the reporter", _ok)
+
+# --- export filenames survive a dotted stem -------------------------------
+print("\nexport filenames")
+import pathlib as _pl
+_stem = "a@gmai.com-20260824-190112"
+check("with_suffix would have eaten the name",
+      str(_pl.Path(_stem).with_suffix(".json")) == "a@gmai.json")
+check("concatenation keeps it intact",
+      _stem + ".json" == "a@gmai.com-20260824-190112.json")
+
+# --- discovered identifiers ------------------------------------------------
+print("\ndiscovered identifiers")
+import builtins as _bi
+from omnisint.models import Profile as _P, Identifier as _I, IdType as _IT
+
+
+def _disc_fixture():
+    _buf = _io3.StringIO()
+    _con = _Con(_RC3(file=_buf, width=100), _SO(),
+                _Auth(operator="t", basis="b", case="C"))
+    _con.targets = [_I.parse("jdoe")]
+    _pr = _P(seeds=list(_con.targets))
+    for _v, _t, _o in [("jdoe@noreply.codeberg.org", _IT.EMAIL, "user-scanner:Codeberg"),
+                       ("j_doe", _IT.USERNAME, "maigret:Keybase"),
+                       ("jdoe2", _IT.USERNAME, "maigret:GitHub"),
+                       ("jdoe", _IT.USERNAME, "input")]:
+        _i = _I(_v, _t, origin=_o, depth=0 if _o == "input" else 1)
+        _pr.identifiers[_i.key()] = _i
+    _con.last = _pr
+    return _con
+
+
+def _answer(text):
+    _con = _disc_fixture()
+    _bi.input = lambda *_a: text
+    _con._offer_discovered()
+    return _con
+
+
+_c = _disc_fixture()
+check("emails are offered before usernames",
+      _c.discovered()[0].value.endswith("codeberg.org"))
+check("already-loaded seeds are not re-offered",
+      "jdoe" not in [i.value for i in _c.discovered()])
+check("decline adds nothing", len(_answer("n").targets) == 1)
+check("decline stops re-offering", _answer("n").discovered() == [])
+check("accept all adds every one", len(_answer("y").targets) == 4)
+check("numeric pick adds only those", len(_answer("1,3").targets) == 3)
+check("garbage input adds nothing", len(_answer("banana").targets) == 1)
+
 # --- viewer renders every section -----------------------------------------
 print("\nviewer")
 from rich.console import Console as _RC

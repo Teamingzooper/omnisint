@@ -112,9 +112,12 @@ class HudsonRockAdapter(Adapter):
     binary = "user-scanner"
     accepts = (IdType.USERNAME, IdType.EMAIL)
     base_weight = 0.8
-    # This should be one API lookup; if it starts a full sweep instead, cut
-    # it loose rather than letting it hold up the whole scan.
-    max_seconds = 90
+    # `user-scanner --hudson` runs a full sweep rather than a single lookup,
+    # so in practice this always hits the timeout and returns nothing while
+    # adding 90s to every scan. Opt-in until that changes: ask for it with
+    # --hudson when you actually want breach exposure.
+    max_seconds = 60
+    opt_in = True
     install = "pip install user-scanner"
     homepage = "https://github.com/kaifcodec/user-scanner"
     description = "infostealer breach exposure (Hudson Rock)"
