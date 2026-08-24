@@ -39,12 +39,12 @@ print(f"      1 src={one:.3f}  2 src={two:.3f}  3 src={three:.3f}")
 print("name noise filtering")
 check("page title", _looks_like_page_title("VK | VK", "VK"))
 check("platform echo", _looks_like_page_title("Patreon", "Patreon"))
-check("real name kept", not _looks_like_page_title("Linus Torvalds", "GitHub"))
-check("handle echo", _is_handle_echo("torvalds", {"torvalds"}))
-check("doubled handle", _is_handle_echo("Torvalds Torvalds", {"torvalds"}))
-check("mixed case handle", _is_handle_echo("ToRvaLDs", {"torvalds"}))
+check("real name kept", not _looks_like_page_title("Alex Rivera", "GitHub"))
+check("handle echo", _is_handle_echo("riverdale", {"riverdale"}))
+check("doubled handle", _is_handle_echo("Riverdale Riverdale", {"riverdale"}))
+check("mixed case handle", _is_handle_echo("RiVerDaLe", {"riverdale"}))
 check("email local part", _is_handle_echo("jdoe", {"jdoe@example.com"}))
-check("real name is not an echo", not _is_handle_echo("Linus Torvalds", {"torvalds"}))
+check("real name is not an echo", not _is_handle_echo("Alex Rivera", {"riverdale"}))
 # A name-derived email corroborates the name; it must not delete it.
 check("name matching an email local part survives",
       not _is_handle_echo("Alex Rivera", {"riverdale"}, {"alex.rivera"}))
@@ -112,12 +112,12 @@ print("\ninput splitting")
 from omnisint.console import Console as _Con
 
 for line, want in [
-    ("michael silverstein, jdoe, a@b.com",
-     ["michael silverstein", "jdoe", "a@b.com"]),
+    ("alex rivera, jdoe, a@b.com",
+     ["alex rivera", "jdoe", "a@b.com"]),
     ("jdoe jdoe@example.com", ["jdoe", "jdoe@example.com"]),
-    ("michael silverstein", ["michael silverstein"]),
+    ("alex rivera", ["alex rivera"]),
     ("Mary-Jane O'Brien", ["Mary-Jane O'Brien"]),
-    ('"michael silverstein" jdoe', ["michael silverstein", "jdoe"]),
+    ('"alex rivera" jdoe', ["alex rivera", "jdoe"]),
     (" a , b ,, c ", ["a", "b", "c"]),
     ("user1 user2 user3", ["user1", "user2", "user3"]),
 ]:
@@ -126,12 +126,25 @@ for line, want in [
 
 # The regression that started this: a 4-word name plus an email.
 check("comma keeps multi-word names intact",
-      _Con.split_input("michael sllverstein, field trip, a@b.com")
-      == ["michael sllverstein", "field trip", "a@b.com"])
+      _Con.split_input("alex riveria, field trip, a@b.com")
+      == ["alex riveria", "field trip", "a@b.com"])
+
+# --- semicolon splits primary from secondary -------------------------------
+print("\nsemicolon primary/secondary split")
+for line, want_p, want_s in [
+    ("Alex Rivera, the man zooper; youtube, field trip",
+     ["Alex Rivera", "the man zooper"], ["youtube", "field trip"]),
+    ("jdoe; acme corp", ["jdoe"], ["acme corp"]),
+    ("alex rivera, mjs@x.com; MIT; Portland",
+     ["alex rivera", "mjs@x.com"], ["MIT", "Portland"]),
+    ("no semicolon, jdoe", ["no semicolon", "jdoe"], []),
+]:
+    got_p, got_s = _Con.parse_line(line)
+    check(f"{line[:38]!r}…", (got_p, got_s) == (want_p, want_s))
 
 # --- dotted handles are not domains ---------------------------------------
 print("\ndomain vs dotted handle")
-for value, want in [("michael.silverstein", "username"), ("john.doe", "username"),
+for value, want in [("alex.rivera", "username"), ("john.doe", "username"),
                     ("example.com", "domain"), ("sub.example.co.uk", "domain"),
                     ("foo.website", "domain"), ("x.tv", "domain")]:
     check(f"{value} -> {want}", detect_type(value).value == want)

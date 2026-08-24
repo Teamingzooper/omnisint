@@ -25,7 +25,7 @@ class IdType(str, Enum):
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[a-z]{2,}$", re.I)
 _PHONE_RE = re.compile(r"^\+?[0-9][0-9\-\s().]{6,}[0-9]$")
 _DOMAIN_RE = re.compile(r"^(?=.{4,253}$)([a-z0-9-]+\.)+[a-z]{2,}$", re.I)
-# A dotted handle like `michael.silverstein` matches the domain shape, so the
+# A dotted handle like `alex.rivera` matches the domain shape, so the
 # last label has to look like a real TLD before we call it a domain.
 _COMMON_TLDS = {
     "com", "org", "net", "edu", "gov", "mil", "int", "io", "co", "us", "uk",
@@ -47,7 +47,7 @@ def _is_domain(value: str) -> bool:
     if not _DOMAIN_RE.match(value):
         return False
     # Membership only — no length fallback, because `john.doe` and
-    # `michael.silverstein` are handles, not hosts, and a wrong guess here
+    # `alex.rivera` are handles, not hosts, and a wrong guess here
     # sends the identifier to entirely the wrong set of tools.
     return value.rsplit(".", 1)[-1].lower() in _COMMON_TLDS
 _URL_RE = re.compile(r"^https?://", re.I)

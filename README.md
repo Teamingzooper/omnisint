@@ -31,8 +31,8 @@ omnisint
 That drops you into the console. Type everything you have and press Enter:
 
 ```
-◉ michael silverstein, mjs, mjs@example.com, +14155550100
-  + michael silverstein  → name   — used to confirm identity
+◉ alex rivera, mjs, mjs@example.com, +14155550100
+  + alex rivera  → name   — used to confirm identity
   + mjs                  → username
   + mjs@example.com      → email
   + +14155550100         → phone
@@ -144,35 +144,35 @@ wrong person hurt, so the report scores them separately:
 
 ```
 Exists   Same?      Platform     URL
-  97%    ✔ 90%      GitHub       https://github.com/torvalds
-  97%    ✖ 20%      Instagram    https://www.instagram.com/torvalds/
+  97%    ✔ 90%      GitHub       https://github.com/riverdale
+  97%    ✖ 20%      Instagram    https://www.instagram.com/riverdale/
 ```
 
 Both accounts certainly exist. The second belongs to someone else — the
-scrape returned the name "Marco Migozzi". A tool that reported both at 97%
-and stopped there would be actively misleading.
+scrape returned a different name. A tool that reported both at 97% and
+stopped there would be actively misleading.
 
 **Persona disambiguation** clusters accounts by the names they expose and
 flags the ones that don't match:
 
 ```
-Identity              Role                   Platforms
-Linus Torvalds        primary                Academia.edu, GitHub, GitHubGist
-Marco Migozzi         likely someone else    Instagram, Pinterest, Unsplash
-Pengze Lin            likely someone else    Kaggle
+Identity          Role                   Platforms
+Alex Rivera       primary                GitHub, GitLab, Mastodon, Keybase
+Dana Okonkwo      likely someone else    Instagram, Pinterest
+Sam Lindqvist     likely someone else    Medium
 ```
 
-On a real run against `torvalds`, 18 of 135 accounts were flagged as probably
-different people. If no name is better corroborated than the rest, the tool
-declines to pick a primary and says so rather than guessing.
+On a real 136-account run, 18 accounts were flagged as probably different
+people. If no name is better corroborated than the rest, the tool declines to
+pick a primary and says so rather than guessing.
 
 ## Names
 
 A name is not searchable, but it is the best anchor you have. Supply one and
 persona clustering picks the primary identity by matching it, instead of
 guessing from corroboration counts. `expand` additionally turns a name into
-the handles people actually pick (`michaelsilverstein`, `m.silverstein`,
-`msilverstein`, …) and searches those — clearly labelled as guesses.
+the handles people actually pick (`alexrivera`, `a.rivera`,
+`arivera`, …) and searches those — clearly labelled as guesses.
 
 Primary identity is chosen from the strongest evidence available, in order:
 

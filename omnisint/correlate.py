@@ -204,8 +204,8 @@ def corroborated_names(profile: Profile) -> list[tuple[str, list[str]]]:
 # Persona disambiguation
 # --------------------------------------------------------------------------
 # The hardest problem in username OSINT is that a username is not a person.
-# `torvalds` on GitHub is Linus Torvalds; `torvalds` on Instagram may be an
-# unrelated person who liked the handle. Every tool in this stack answers
+# `riverdale` on GitHub may be your subject while `riverdale` on Instagram
+# is an unrelated person who happened to like the handle. Every tool in this stack answers
 # "does this handle exist here?" and none of them answer "is it your
 # subject?". We answer the second question separately, and we never let a
 # high existence score masquerade as an identification.

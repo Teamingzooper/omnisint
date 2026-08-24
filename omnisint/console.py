@@ -25,14 +25,17 @@ HELP = """\
 [bold]Primary[/bold] — things that identify the person. These get searched.
 Type them on one line; use commas so multi-word names stay together:
 
-    [cyan]michael silverstein, mjs, mjs@example.com, +14155550100[/cyan]
+    [cyan]alex rivera, mjs, mjs@example.com, +14155550100[/cyan]
 
 [bold]Secondary[/bold] — things you know [italic]about[/italic] them: employer, school,
 city, band. These are [bold]never searched[/bold]. They are matched against what the
 primaries bring back, which is faster and far more reliable than
-searching "Acme Corp" across 3000 sites:
+searching "Acme Corp" across 3000 sites.
 
-    [cyan]sec Acme Corp, MIT, Portland[/cyan]
+Put both on one line with a [bold]semicolon[/bold], or add them later with [cyan]sec[/cyan]:
+
+    [cyan]alex rivera, mjs[/cyan][bold];[/bold] [magenta]youtube, field trip[/magenta]
+    [cyan]sec Acme Corp, MIT, Portland[/magenta]
 
 An account whose bio names your employer is your subject. That beats any
 amount of username matching.
@@ -91,7 +94,7 @@ class Console:
         """Split a line into identifiers.
 
         If the line has commas, the comma is the separator and nothing else
-        is — so `michael silverstein, jdoe` is a name and a handle, not three
+        is — so `alex rivera, jdoe` is a name and a handle, not three
         handles. Without commas, whitespace separates, which keeps the common
         `jdoe jdoe@example.com` case a single keystroke.
 
@@ -110,15 +113,36 @@ class Console:
             return [p.strip() for p in raw.split(",") if p.strip()]
         tokens = raw.split()
         if _looks_like_one_name(tokens):
-            # `michael silverstein` is a person, not two handles. Anything
+            # `alex rivera` is a person, not two handles. Anything
             # with a comma, a digit, an @ or a dot escapes this branch, and
             # a comma always forces the split explicitly.
             return [" ".join(tokens)]
         return tokens
 
+    @classmethod
+    def parse_line(cls, raw: str) -> tuple[list[str], list[str]]:
+        """Split one line into (primary, secondary).
+
+        A semicolon separates the two halves, so a whole investigation fits
+        on one line:
+
+            alex rivera, the man zooper; youtube, field trip
+            └────────── primary ────────────┘  └──── secondary ────┘
+
+        Each half then follows the normal comma/whitespace rules. Everything
+        after the first semicolon is secondary, so stray semicolons later in
+        the line cannot silently promote a term to being searched.
+        """
+        if ";" not in raw:
+            return cls.split_input(raw), []
+        head, _, tail = raw.partition(";")
+        secondary = [t.strip() for t in tail.replace(";", ",").split(",") if t.strip()]
+        return cls.split_input(head), secondary
+
     def _classify(self, raw: str) -> None:
+        primary_raw, secondary_raw = self.parse_line(raw)
         added, skipped = [], []
-        for piece in self.split_input(raw):
+        for piece in primary_raw:
             ident = Identifier.parse(piece)
             if ident.type is IdType.UNKNOWN:
                 skipped.append(piece)
@@ -140,6 +164,8 @@ class Console:
         for piece in skipped:
             self.c.print(f"  [yellow]?[/yellow] {piece}  [dim]→ could not "
                          f"classify; ignored[/dim]")
+        if secondary_raw:
+            self._add_secondary(", ".join(secondary_raw))
 
     def _add_secondary(self, raw: str) -> None:
         terms = [t.strip() for t in raw.replace(",", "\n").split("\n") if t.strip()]
@@ -441,7 +467,7 @@ class Console:
         names = [t for t in self.targets if t.type is IdType.NAME]
         if not names:
             self.c.print("[yellow]No names loaded.[/yellow] Add one first, "
-                         "e.g. [cyan]michael silverstein[/cyan]")
+                         "e.g. [cyan]alex rivera[/cyan]")
             return
 
         added = 0

@@ -1,6 +1,6 @@
 """Turning a person's name into something the tools can actually search.
 
-None of the backends accept "Michael Silverstein" — they want a handle. A
+None of the backends accept "Alex Rivera" — they want a handle. A
 name is still worth having, for two reasons:
 
 1. It is the best *anchor* we have for attribution. If you tell us who you
@@ -31,8 +31,8 @@ def parts(name: str) -> list[str]:
 def similarity(a: str, b: str) -> float:
     """How much two names overlap, by shared word tokens.
 
-    Deliberately token-based rather than fuzzy string distance: 'Linus
-    Torvalds' vs 'Patricia Torvalds' share a surname but are different
+    Deliberately token-based rather than fuzzy string distance: 'Alex
+    Rivera' and 'Jordan Rivera' share a surname but are different
     people, and edit distance would rate them far too close.
     """
     ta, tb = set(parts(a)), set(parts(b))
