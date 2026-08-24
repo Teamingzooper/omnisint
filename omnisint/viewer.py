@@ -10,6 +10,7 @@ to a plain linear print anywhere stdin is not a TTY.
 """
 from __future__ import annotations
 
+import os
 import sys
 from dataclasses import dataclass
 from typing import Callable
@@ -25,14 +26,36 @@ from .models import Profile
 UP, DOWN, LEFT, RIGHT = "up", "down", "left", "right"
 PGUP, PGDN, HOME, END = "pgup", "pgdn", "home", "end"
 
+# Terminals disagree about arrow keys. In normal cursor mode they send CSI
+# sequences (ESC [ A); with DECCKM set — which many terminals and
+# multiplexers enable — they send SS3 instead (ESC O A). Handling only the
+# first meant an arrow press fell through to "escape" and quit the viewer,
+# which is why arrows looked like they did nothing at all.
 _ESCAPE_MAP = {
     "A": UP, "B": DOWN, "C": RIGHT, "D": LEFT,
     "H": HOME, "F": END, "5~": PGUP, "6~": PGDN, "1~": HOME, "4~": END,
+    "P": HOME, "Q": END,          # SS3 Home/End
+}
+
+#: Letter keys, so navigation never depends on escape sequences arriving.
+#: i/k scroll, j/l change section — the right-hand equivalent of WASD.
+_LETTER_KEYS = {
+    "i": UP, "k": DOWN, "j": LEFT, "l": RIGHT,
+    "I": UP, "K": DOWN, "J": LEFT, "L": RIGHT,
+    "w": UP, "s": DOWN, "a": LEFT, "d": RIGHT,
+    "n": RIGHT, "p": LEFT, "\t": RIGHT,
 }
 
 
 def read_key() -> str:
-    """Block for one keypress and return a normalised name."""
+    """Block for one keypress and return a normalised name.
+
+    Reads with os.read on the raw fd rather than sys.stdin.read. Python's
+    text stream is buffered, and in raw mode a one-character read on it can
+    block waiting for a buffer fill that never comes — which stalled the
+    viewer after its first frame and made every key look dead.
+    """
+    import select
     import termios
     import tty
 
@@ -40,23 +63,25 @@ def read_key() -> str:
     old = termios.tcgetattr(fd)
     try:
         tty.setraw(fd)
-        ch = sys.stdin.read(1)
+
+        def _read(n: int = 1) -> str:
+            return os.read(fd, n).decode("utf-8", "replace")
+
+        ch = _read()
         if ch != "\x1b":
             return ch
-        # Escape sequence. A bare ESC has nothing following it, so peek with
-        # a zero timeout rather than blocking forever.
-        import select
 
-        if not select.select([fd], [], [], 0.05)[0]:
+        # A bare ESC has nothing after it, so peek rather than block.
+        if not select.select([fd], [], [], 0.12)[0]:
             return "escape"
-        seq = sys.stdin.read(1)
-        if seq != "[":
+        intro = _read()
+        if intro not in ("[", "O"):
             return "escape"
         body = ""
-        while True:
-            if not select.select([fd], [], [], 0.05)[0]:
+        while len(body) < 8:
+            if not select.select([fd], [], [], 0.12)[0]:
                 break
-            c = sys.stdin.read(1)
+            c = _read()
             body += c
             if c.isalpha() or c == "~":
                 break
@@ -138,6 +163,17 @@ class Viewer:
         self._cache.clear()
 
     # -- drawing ----------------------------------------------------------
+    @staticmethod
+    def _clear() -> None:
+        """Home the cursor and clear the screen.
+
+        Written straight to stdout, not through rich: rich reads square
+        brackets as markup, so an ANSI sequence handed to console.print is
+        swallowed as a style tag and the screen never actually clears.
+        """
+        sys.stdout.write("\x1b[H\x1b[2J")
+        sys.stdout.flush()
+
     def _tabs(self) -> str:
         out = []
         for i, s in enumerate(self.sections):
@@ -155,7 +191,7 @@ class Viewer:
         self.offset = max(0, min(self.offset, max(0, total - body_height)))
         window = lines[self.offset:self.offset + body_height]
 
-        self.c.print("\x1b[H\x1b[2J", end="")   # home + clear
+        self._clear()
         self.c.print(self._tabs())
         for line in window:
             print(line)
@@ -169,7 +205,9 @@ class Viewer:
         else:
             pos = f"{total} line{'s' if total != 1 else ''}"
         self.c.print(
-            f"[dim]←/→ section · ↑/↓ scroll · PgUp/PgDn page · [/dim]"
+            f"[bold]j[/bold][dim]/[/dim][bold]l[/bold][dim] or ←/→ section · [/dim]"
+            f"[bold]i[/bold][dim]/[/dim][bold]k[/bold][dim] or ↑/↓ scroll · [/dim]"
+            f"[bold]space[/bold][dim] page · [/dim][bold]1-9[/bold][dim] jump · [/dim]"
             f"[bold]e[/bold][dim] export · [/dim][bold]q[/bold][dim] back"
             f"   ·   {self.sections[self.index].title} · {pos}[/dim]"
         )
@@ -190,28 +228,33 @@ class Viewer:
                 key = read_key()
 
                 if key in ("q", "Q", "escape", "\x03", "\x04"):
-                    self.c.print("\x1b[H\x1b[2J", end="")
+                    self._clear()
                     return
-                if key in (RIGHT, "\t", "l", "n"):
+
+                # Letter keys and arrows funnel into the same four moves, so
+                # navigation works even where escape sequences never arrive.
+                move = _LETTER_KEYS.get(key, key)
+
+                if move == RIGHT:
                     self.index = (self.index + 1) % len(self.sections)
                     self.offset = 0
-                elif key in (LEFT, "h", "p"):
+                elif move == LEFT:
                     self.index = (self.index - 1) % len(self.sections)
                     self.offset = 0
-                elif key == DOWN or key == "j":
-                    self.offset += 1
-                elif key == UP or key == "k":
-                    self.offset = max(0, self.offset - 1)
-                elif key == PGDN or key == " ":
+                elif move == DOWN:
+                    self.offset += 3
+                elif move == UP:
+                    self.offset = max(0, self.offset - 3)
+                elif key in (PGDN, " ", "f"):
                     self.offset += height
-                elif key == PGUP or key == "b":
+                elif key in (PGUP, "b"):
                     self.offset = max(0, self.offset - height)
-                elif key == HOME or key == "g":
+                elif key in (HOME, "g"):
                     self.offset = 0
-                elif key == END or key == "G":
+                elif key in (END, "G"):
                     self.offset = max(0, len(self._lines(self.index)) - height)
                 elif key in ("e", "E") and self.on_export:
-                    self.c.print("\x1b[H\x1b[2J", end="")
+                    self._clear()
                     self.on_export()
                     self.c.input("[dim]press Enter to return to the report[/dim] ")
                 elif key.isdigit() and key != "0":
@@ -219,7 +262,7 @@ class Viewer:
                     if target < len(self.sections):
                         self.index, self.offset = target, 0
         except (KeyboardInterrupt, EOFError):
-            self.c.print("\x1b[H\x1b[2J", end="")
+            self._clear()
         except Exception as exc:
             # Never trap the operator in a broken TUI — fall back to plain text.
             self.c.print(f"[yellow]viewer unavailable ({exc}); "

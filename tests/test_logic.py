@@ -207,6 +207,29 @@ v = Viewer(pr, _RC(width=100, file=_io.StringIO()))
 check("arrow keys map correctly",
       (_ESCAPE_MAP["A"], _ESCAPE_MAP["B"], _ESCAPE_MAP["C"], _ESCAPE_MAP["D"])
       == (UP, DOWN, RIGHT, LEFT))
+
+from omnisint.viewer import _LETTER_KEYS
+check("ijkl navigates",
+      (_LETTER_KEYS["i"], _LETTER_KEYS["k"], _LETTER_KEYS["j"], _LETTER_KEYS["l"])
+      == (UP, DOWN, LEFT, RIGHT))
+check("wasd also navigates",
+      (_LETTER_KEYS["w"], _LETTER_KEYS["s"], _LETTER_KEYS["a"], _LETTER_KEYS["d"])
+      == (UP, DOWN, LEFT, RIGHT))
+check("letter keys are case-insensitive",
+      _LETTER_KEYS["L"] == RIGHT and _LETTER_KEYS["I"] == UP)
+# Navigation keys must not collide with the command keys.
+check("nav keys do not shadow quit/export",
+      not ({"q", "Q", "e", "E"} & set(_LETTER_KEYS)))
+
+# The screen clear must reach stdout directly: rich reads square brackets as
+# markup and silently swallows an ANSI sequence passed to console.print.
+import io as _io2
+import contextlib as _ctx
+_cap = _io2.StringIO()
+with _ctx.redirect_stdout(_cap):
+    Viewer._clear()
+check("screen clear emits raw ANSI to stdout",
+      _cap.getvalue() == "\x1b[H\x1b[2J")
 check("every section renders non-empty",
       all(any(l.strip() for l in v._lines(i)) for i in range(len(v.sections))))
 v.index, v.offset = 1, 10_000

@@ -72,8 +72,13 @@ and promoted to **same person**. That beats any amount of handle matching.
 
 ## Reading the report
 
-Arrow keys move between sections; `↑`/`↓` and `PgUp`/`PgDn` scroll; number
-keys jump; `e` exports; `q` returns to the prompt.
+`j`/`l` move between sections and `i`/`k` scroll — the right-hand equivalent
+of WASD, which also works. Arrow keys do the same. `space` pages, number keys
+jump straight to a section, `e` exports, `q` returns to the prompt.
+
+Letter keys are the reliable path: some terminals send arrows as SS3
+(`ESC O A`) rather than CSI (`ESC [ A`), and multiplexers vary. Both are
+handled, but `ijkl` never depends on escape sequences arriving at all.
 
 ```
  Overview  Identity 7  Identities 2 flagged  Accounts 136  Full data 41 …
