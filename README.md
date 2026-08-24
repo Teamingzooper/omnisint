@@ -1,0 +1,288 @@
+```
+ ▄██████▄  ▄▄       ▄▄ ▄▄     ▄▄ ▄▄   ▄███████ ▄▄ ▄▄     ▄▄ ██████████
+ ██▀    ▀█ ███▄   ▄███ ███▄   ██ ██   ██▀      ██ ███▄   ██     ██
+ ██  ◉   █ ██ ▀███▀ ██ ██ ▀█▄ ██ ██   ▀██████▄ ██ ██ ▀█▄ ██     ██
+ ██▄    ▄█ ██   ▀   ██ ██   ▀███ ██        ▀██ ██ ██   ▀███     ██
+ ▀██████▀  ▀▀       ▀▀ ▀▀     ▀▀ ▀▀   ███████▀ ▀▀ ▀▀     ▀▀     ▀▀
+
+ every source · one profile
+```
+
+# Omnisint
+
+*omniscient + OSINT.* One command that runs every OSINT tool on your machine
+against a name, username, email, phone or domain, then **correlates the
+results into a single profile** instead of leaving you to diff eight terminal
+windows by hand.
+
+**Brand:** the mark is an eye built from the `O` — the all-seeing reading of
+*omniscient*. The wordmark weights **OMNI** solid and `SINT` outlined so the
+seam of the portmanteau stays visible. Cyan reads as instrumentation, magenta
+marks identity and corroboration, amber is caution, red is exposure — used
+consistently in the terminal and in the HTML report. Three wordmark sizes ship
+so the banner never wraps: full, compact, and `◉ OMNISINT`.
+
+## Start here
+
+```bash
+omnisint
+```
+
+That drops you into the console. Type everything you have and press Enter:
+
+```
+◉ michael silverstein, mjs, mjs@example.com, +14155550100
+  + michael silverstein  → name   — used to confirm identity
+  + mjs                  → username
+  + mjs@example.com      → email
+  + +14155550100         → phone
+  Press Enter to scan, or add more.
+
+◉ sec Acme Corp, MIT, Portland
+  ± Acme Corp   → secondary (cross-check only)
+  ± MIT         → secondary (cross-check only)
+  ± Portland    → secondary (cross-check only)
+
+◉
+▸ scanning 4 identifier(s) · 11 task(s) · quick · passive
+  ✔ maigret → mjs (22 hits, 13.5s)
+  ✔ sherlock → mjs (92 hits, 17.3s)
+```
+
+Then the report opens in a full-screen browser you page through with the
+arrow keys — not one endless wall of text.
+
+## Primary vs secondary input
+
+**Primary** identifies the person and gets searched: names, handles, emails,
+phone numbers, domains.
+
+**Secondary** is what you know *about* them — employer, school, city, band.
+These are **never searched**. Searching "Acme Corp" across 3000 username
+databases is worthless; finding it in the bio of an account a username
+already surfaced is decisive. So secondary terms are matched only against
+what the primaries bring back. It is both faster and far more reliable.
+
+```
+◉ sec Acme Corp, MIT
+```
+
+An account whose bio names the employer you supplied is marked `± Acme Corp`
+and promoted to **same person**. That beats any amount of handle matching.
+
+## Reading the report
+
+Arrow keys move between sections; `↑`/`↓` and `PgUp`/`PgDn` scroll; number
+keys jump; `e` exports; `q` returns to the prompt.
+
+```
+ Overview  Identity 7  Identities 2 flagged  Accounts 136  Full data 41 …
+```
+
+| Section | What it answers |
+|---|---|
+| Overview | how many accounts, how many are actually your subject |
+| Identity | names, locations, bios, avatars, and where each was seen |
+| Identities | the distinct *people* sharing these identifiers |
+| Accounts | every hit, scored for existence and attribution |
+| Full data | every field every tool returned |
+| Existence only | hits with no extractable data |
+| Infrastructure | WHOIS, MX, DNS, phone metadata |
+| Breaches | stealer-log and breach exposure |
+| Tools | what ran, what failed, what timed out |
+| Caveats | everything unchecked, rate-limited, or uncertain |
+
+Nothing is written to disk unless you ask. `export [dir]` writes JSON + HTML
++ Markdown (mode 600) to `~/omnisint-reports/` or a directory you name.
+
+## Depth
+
+| | |
+|---|---|
+| `-q` / `quick` | top 50 sites — mainstream platforms, back in seconds |
+| `-s` / `standard` | top 500 sites per tool (default) |
+| `-d` / `deep` | every site in every database, plus a pivot hop |
+| `-v` / `verbose` | per-site detail, tool errors, full caveat list |
+
+These work as launch flags (`omnisint -q`) and as console commands.
+
+Other console commands: `sec`, `show`, `drop`, `expand`, `pivot N`,
+`set <opt> <val>`, `opts`, `tools`, `view`, `export`, `help`, `quit`.
+Bare Enter scans whatever is loaded.
+
+## Scripted use
+
+```bash
+omnisint scan johndoe
+omnisint scan john@example.com
+omnisint scan johndoe john@example.com --pivot 1 --html dossier.html
+```
+
+## What it wraps
+
+| Backend | Input | Trust | What it contributes |
+|---|---|---|---|
+| **maigret** | username | 0.70 | 3000+ sites, and it *parses profiles* — names, locations, follower counts, linked IDs |
+| **sherlock** | username | 0.45 | 400+ sites, high recall, high false-positive rate |
+| **user-scanner** | username, email | 0.68 | 400+ vectors with profile metadata and avatars |
+| **holehe** | email | 0.72 | which sites have an account registered to an address |
+| **gravatar** | email | 0.90 | subject-published profile + self-declared linked accounts |
+| **hudsonrock** | username, email | 0.80 | infostealer-malware breach exposure |
+| **infrastructure** | email, domain | — | WHOIS, MX, NS, SPF — is this a real domain or a throwaway mailbox? |
+| **hibp** | email | — | breach exposure (set `HIBP_API_KEY`) |
+| **phone** | phone | — | offline number parsing: country, carrier, line type, timezone |
+| **toutatis** | username | 0.85 | Instagram detail incl. obfuscated email/phone (needs `TOUTATIS_SESSION_ID`) |
+| **darkweb** | username, email | 0.50 | hidden-service index search — opt-in, needs Tor and `--darkweb` |
+
+Missing backends are skipped, never fatal. `omnisint tools` shows what is installed.
+
+## The two questions
+
+Every tool in this stack answers **"does this handle exist here?"** None of
+them answer **"is it your subject?"** Conflating those is how OSINT gets the
+wrong person hurt, so the report scores them separately:
+
+```
+Exists   Same?      Platform     URL
+  97%    ✔ 90%      GitHub       https://github.com/torvalds
+  97%    ✖ 20%      Instagram    https://www.instagram.com/torvalds/
+```
+
+Both accounts certainly exist. The second belongs to someone else — the
+scrape returned the name "Marco Migozzi". A tool that reported both at 97%
+and stopped there would be actively misleading.
+
+**Persona disambiguation** clusters accounts by the names they expose and
+flags the ones that don't match:
+
+```
+Identity              Role                   Platforms
+Linus Torvalds        primary                Academia.edu, GitHub, GitHubGist
+Marco Migozzi         likely someone else    Instagram, Pinterest, Unsplash
+Pengze Lin            likely someone else    Kaggle
+```
+
+On a real run against `torvalds`, 18 of 135 accounts were flagged as probably
+different people. If no name is better corroborated than the rest, the tool
+declines to pick a primary and says so rather than guessing.
+
+## Names
+
+A name is not searchable, but it is the best anchor you have. Supply one and
+persona clustering picks the primary identity by matching it, instead of
+guessing from corroboration counts. `expand` additionally turns a name into
+the handles people actually pick (`michaelsilverstein`, `m.silverstein`,
+`msilverstein`, …) and searches those — clearly labelled as guesses.
+
+Primary identity is chosen from the strongest evidence available, in order:
+
+1. an account matched a **secondary term** you supplied
+2. an account's name matches a **name** you supplied
+3. one name is **corroborated on more platforms** than any other
+
+If none of those hold, no primary is assigned and the report says so.
+
+## How confidence is computed
+
+Sources are combined with a discounted noisy-OR. They are *not* treated as
+independent — most decide "exists" from an HTTP status code, so they share
+their false positives:
+
+| Agreeing sources | Score |
+|---|---|
+| sherlock alone | 0.45 |
+| sherlock + user-scanner | 0.76 |
+| + maigret | 0.84 |
+
+Nothing ever reaches certainty. A parsed profile body adds a small bonus,
+because rendered profile fields prove something is actually there in a way a
+status code does not.
+
+## Silence is not absence
+
+A tool that got rate-limited on every site has told you *nothing*, and left
+unsaid that silence reads as "clean". Inconclusive results are tracked apart
+from negatives and reported:
+
+```
+holehe: NO USABLE SIGNAL — 116 site(s) returned no verdict and nothing was
+found (rate limited ×116). Treat this tool as having not run: absence here
+is not evidence of absence.
+```
+
+## Ethics, and why they are enforced in code
+
+- **Authorisation gate.** The first scan requires you to confirm a lawful
+  basis. Non-interactively, `--i-have-authorization --basis "…"`. It is
+  recorded, not just displayed.
+- **Audit trail.** Every scan writes to `~/.omnisint/audit.jsonl`:
+  operator, targets, adapters, case reference, counts. `omnisint audit` reads
+  it back. This is what makes an investigation defensible afterwards.
+- **Passive by default.** `holehe` runs with `-NP` so no password-recovery
+  mail reaches the subject. An investigation should not be visible to its
+  target. `--active` lifts this and warns you.
+- **NSFW site lists off** unless `--nsfw`.
+- **Reports are chmod 600**, because a dossier is sensitive personal data.
+
+None of this stops a determined misuser. It does mean misuse has to be
+deliberate, and leaves a record.
+
+## Usage
+
+```bash
+omnisint                              # interactive console
+omnisint tools                         # what is installed
+omnisint scan <target> [...]           # scan; type is auto-detected
+omnisint audit                         # read the audit log
+```
+
+Scope: `--deep` (all sites), `--top-sites N`, `--pivot N` (follow discovered
+identifiers N hops), `--pivot-limit N`, `--nsfw`
+Tools: `--only a,b`, `--exclude a,b`, `--active`
+Network: `--timeout`, `--tool-timeout`, `--workers`, `--proxy`, `--tor`, `--delay`
+Output: `--json F`, `--html F`, `--markdown F`, `--min-confidence`, `--show-all`, `--keep-raw`, `--dry-run`
+
+`--pivot` is where scans explode: an email found on one platform becomes a
+new seed for every email-capable tool. `--pivot-limit` (default 5) caps the
+fan-out per hop, and the report tells you what it chose not to follow.
+
+## Sample output
+
+[`examples/sample-report.html`](examples/sample-report.html) is a rendered
+report built from **entirely fictional data** — regenerate it with
+`python3 examples/make_sample.py`.
+
+Real scan output is never committed here, and you should not commit yours
+either. A report is personal data about real people, and in a username
+collision it describes people who have nothing to do with your subject.
+`.gitignore` excludes `omnisint-reports/` and the tools' raw output files
+for exactly this reason.
+
+## Install
+
+```bash
+git clone https://github.com/Teamingzooper/omnisint
+cd omnisint
+pip install -e .
+pip install maigret holehe user-scanner   # backends
+brew install sherlock
+export HIBP_API_KEY=…                     # optional
+```
+
+## Tests
+
+```bash
+python3 tests/test_logic.py
+```
+
+Covers identifier detection, platform normalisation, confidence combination
+and the name-noise filters — the logic that decides what the operator ends up
+believing.
+
+## Limits
+
+Findings are unverified third-party signals. Username collision is the norm,
+not the exception. Scrapers return page titles that look like names. Sites
+change their responses and every tool's site database rots. Treat anything
+below `confirmed` + `same person` as a lead to verify by hand, never as a
+fact to act on.

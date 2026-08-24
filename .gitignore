@@ -1,0 +1,18 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+
+# Scan output is personal data about real people. It must never be committed.
+omnisint-reports/
+*.osint.json
+report_*.json
+output_*.txt
+holehe_*.csv
+
+.DS_Store
+.idea/
+.vscode/
