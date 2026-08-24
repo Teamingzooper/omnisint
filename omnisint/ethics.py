@@ -21,24 +21,31 @@ CONSENT_FILE = HOME / "authorization.json"
 AUDIT_LOG = HOME / "audit.jsonl"
 
 BANNER = """\
-Omnisint aggregates publicly available information from third-party
-services. Before you continue, confirm all of the following:
+Omnisint searches public sources and pulls the results into one profile.
 
-  1. You are investigating yourself, or you have documented authorisation
-     from the data subject or from an engagement owner (pentest scope,
-     legal hold, HR/trust-and-safety mandate, or equivalent).
-  2. Your purpose is lawful and proportionate. Stalking, harassment,
-     doxxing, and building profiles on people who have not consented are
-     not lawful purposes, whatever your local statute says.
-  3. You will hold the results as sensitive personal data: minimise what
-     you keep, do not redistribute it, and delete it when the engagement
-     ends.
-  4. You accept that everything you run is written to a local audit log.
+Before the first scan, one question: who are you looking into, and what
+gives you the standing to do it? Whatever you answer is written to a local
+audit log, which is what makes an investigation defensible later.
 
-Findings here are unverified third-party signals, not facts. Username
-collision is common. Do not act against a person on the strength of a
-"possible" or "probable" match.\
+Ground rules, in short:
+  · Results are unverified signals, not facts. Handles collide constantly.
+  · Do not act against someone on a "possible" or "probable" match.
+  · Treat what you find as sensitive personal data: keep little, share
+    nothing, delete it when you are done.\
 """
+
+#: Offered as a numbered menu rather than a blank prompt. A free-text box
+#: asking for a "lawful basis" mostly produces the word "yes".
+BASIS_CHOICES = [
+    ("Myself — checking my own footprint",
+     "self-audit of my own accounts"),
+    ("Someone who asked me to — they gave permission",
+     "consent of the data subject"),
+    ("Work — pentest, trust & safety, HR, legal, or similar",
+     "authorised engagement"),
+    ("Security research on a public figure or public account",
+     "security research, public sources only"),
+]
 
 
 @dataclass
@@ -125,13 +132,32 @@ def require_authorization(
         console.print(BANNER)
     else:
         print(BANNER)
-    answer = input("\nDo you confirm all four points? [type 'yes' to continue] ").strip()
-    if answer.lower() not in {"yes", "y"}:
-        raise AuthorizationError("Authorisation not confirmed; aborting.")
-    typed_basis = basis or input("Lawful basis / engagement reference: ").strip()
+
+    typed_basis = basis
     if not typed_basis:
-        raise AuthorizationError("A lawful basis is required; aborting.")
+        print("\nWho are you looking into?")
+        for n, (label, _) in enumerate(BASIS_CHOICES, 1):
+            print(f"  {n}. {label}")
+        print(f"  {len(BASIS_CHOICES) + 1}. Something else — I'll describe it")
+        choice = input("\nChoose 1-5 (or q to quit): ").strip().lower()
+
+        if choice in ("q", "quit", "exit", ""):
+            raise AuthorizationError(
+                "No basis given, so nothing was scanned. Run it again when "
+                "you can answer that question.")
+        if choice.isdigit() and 1 <= int(choice) <= len(BASIS_CHOICES):
+            typed_basis = BASIS_CHOICES[int(choice) - 1][1]
+        else:
+            typed_basis = input("Describe it in a few words: ").strip()
+            if not typed_basis or typed_basis.lower() in {"yes", "y", "n", "ok"}:
+                raise AuthorizationError(
+                    "That is not a reason. Say who you are looking into and "
+                    "why you may — it goes in the audit log, and it is the "
+                    "thing that makes this defensible later.")
+
     auth = Authorization(operator=operator, basis=typed_basis, case=case)
+    if console is not None:
+        console.print(f"\n[dim]Recorded: {typed_basis}[/dim]")
     save_authorization(auth)
     return auth
 

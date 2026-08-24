@@ -97,6 +97,24 @@ check("secondary captured", snap["secondary"] == ["northwind labs"])
 check("export before completion is refused",
       get(f"/api/export/{run_id}", TOKEN, "POST", {})[0] == 400)
 
+print("\nadvice endpoint")
+code, body, _ = get("/api/advise", TOKEN, "POST",
+                    {"targets": "michael sllverstein field trip mdsilvers11@icloud.com"})
+adv = json.loads(body)
+check("advice endpoint responds", code == 200)
+check("it parses the line the way the console does",
+      [p["type"] for p in adv["parsed"]] == ["username"] * 4 + ["email"])
+check("it flags the noisy query", adv["noisy"] and len(adv["problems"]) >= 4)
+check("it returns a rewrite the UI can apply",
+      any(p.get("rewrite") for p in adv["problems"]))
+
+rewrite = next(p["rewrite"] for p in adv["problems"] if p.get("rewrite"))
+clean = json.loads(get("/api/advise", TOKEN, "POST", {"targets": rewrite})[1])
+check("the rewrite it offers comes back clean",
+      not clean["problems"] and not clean["noisy"])
+check("advice needs the token too",
+      get("/api/advise", None, "POST", {"targets": "x"})[0] == 403)
+
 httpd.shutdown()
 print(f"\n{PASS} passed, {FAIL} failed")
 sys.exit(1 if FAIL else 0)

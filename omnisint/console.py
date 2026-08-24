@@ -47,6 +47,9 @@ scan — it does not exit; use [cyan]quit[/cyan] for that.
 
 [bold]Commands[/bold]
   [cyan]scan[/cyan] / [cyan]go[/cyan]        run against everything collected so far
+  [cyan]examples[/cyan]        worked examples of what to type
+  [cyan]undo[/cyan]            remove the last thing you added
+  [cyan]again[/cyan]           re-run the current targets
   [cyan]sec <terms>[/cyan]     add secondary terms (cross-checked, never searched)
   [cyan]show[/cyan]            list everything currently loaded
   [cyan]drop <n|all>[/cyan]    remove one identifier, or clear the list
@@ -110,7 +113,7 @@ _COMMANDS = {"scan", "go", "run", "show", "drop", "deep", "pivot", "set",
              "opts", "options", "tools", "last", "save", "help", "?", "quit",
              "exit", "q", "clear", "expand", "quick", "standard", "verbose",
              "-q", "-d", "-v", "-s", "export", "view", "sec", "secondary",
-             "+", "found", "web", "ui"}
+             "+", "found", "web", "ui", "examples", "undo", "again"}
 
 
 class Console:
@@ -388,6 +391,9 @@ class Console:
                          "add a name, handle, email or phone first.")
             return
 
+        if not self._preflight():
+            return
+
         engine = Engine(self.opts)
         if not engine.adapters:
             self.c.print("[red]No backends available.[/red] Try [bold]tools[/bold].")
@@ -478,6 +484,59 @@ class Console:
         self._recap()
         self._offer_discovered()
 
+    def _preflight(self) -> bool:
+        """Warn about a query that will waste the operator's time.
+
+        Returns False if they chose not to run it. The check never blocks a
+        scan on its own — a deliberately broad sweep is legitimate — but a
+        query that will return nine hundred accounts belonging to ninety
+        people should say so before it spends ninety seconds proving it.
+        """
+        from .advice import review
+
+        report = review(self.targets, self.secondary)
+        if not report["problems"] and not report["suggestions"]:
+            return True
+
+        self.c.print()
+        for problem in report["problems"]:
+            colour = "red" if problem["level"] == "high" else "yellow"
+            self.c.print(f"  [{colour}]![/{colour}] {problem['text']}")
+            if problem.get("fix"):
+                self.c.print(f"    [dim]{problem['fix']}[/dim]")
+        for tip in report["suggestions"]:
+            self.c.print(f"  [cyan]›[/cyan] [dim]{tip}[/dim]")
+
+        rewrite = next((p["rewrite"] for p in report["problems"] if p.get("rewrite")), None)
+        if not report["noisy"]:
+            self.c.print()
+            return True
+
+        self.c.print(f"\n  [dim]Rough guess: this could return "
+                     f"{report['expected_hits']:,}+ accounts, most of them "
+                     f"other people.[/dim]")
+        if rewrite:
+            self.c.print(f"  [bold]Suggested:[/bold] [cyan]{rewrite}[/cyan]")
+            prompt = "\n  [f]ix it / [s]can anyway / [c]ancel: "
+        else:
+            prompt = "\n  [s]can anyway / [c]ancel: "
+
+        try:
+            answer = input(prompt.replace("[", "").replace("]", "")).strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            self.c.print()
+            return False
+
+        if answer.startswith("c"):
+            self.c.print("[dim]Cancelled — your identifiers are still loaded.[/dim]\n")
+            return False
+        if rewrite and (answer.startswith("f") or answer == ""):
+            self.targets.clear()
+            self._classify(rewrite)
+            self.c.print("[dim]Rewritten. Press Enter to scan.[/dim]\n")
+            return False
+        return True
+
     def _recap(self) -> None:
         """Compact summary printed on returning from the full-screen viewer.
 
@@ -503,11 +562,24 @@ class Console:
         elif p.personas:
             self.c.print("  [yellow]identity unresolved[/yellow][dim] — "
                          "several names, none better corroborated[/dim]")
+        # Say what would actually improve this result, not just what commands
+        # exist. An unresolved identity has a specific fix.
+        if primary is None and p.personas:
+            self.c.print("  [yellow]→ Next:[/yellow] several names, none better "
+                         "corroborated. Add what you know about them: "
+                         "[cyan]sec <employer or city>[/cyan][dim], then press "
+                         "Enter to rescan.[/dim]")
+        elif not p.personas:
+            self.c.print("  [yellow]→ Next:[/yellow] no account exposed a name, "
+                         "so nothing can be attributed. Try [cyan]-d[/cyan]"
+                         "[dim] for a deeper sweep, or add another identifier.[/dim]")
+        elif diff:
+            self.c.print(f"  [green]→[/green] [dim]{diff} account(s) look like "
+                         "other people — check the[/dim] [cyan]Identities[/cyan]"
+                         "[dim] section before relying on anything.[/dim]")
         self.c.print(
-            "  [cyan]view[/cyan][dim] reopen report · [/dim]"
-            "[cyan]export[/cyan][dim] save to disk · [/dim]"
-            "[cyan]sec <term>[/cyan][dim] add a cross-check and rescan · [/dim]"
-            "[cyan]drop all[/cyan][dim] start over[/dim]\n"
+            "  [cyan]view[/cyan][dim] reopen · [/dim][cyan]export[/cyan][dim] save · [/dim]"
+            "[cyan]found[/cyan][dim] new leads · [/dim][cyan]drop all[/cyan][dim] start over[/dim]\n"
         )
 
     def discovered(self) -> list[Identifier]:
@@ -586,6 +658,27 @@ class Console:
         self.c.print(f"\n[dim]{len(chosen)} added — press Enter to scan, or "
                      "add more first.[/dim]\n")
 
+    def _examples(self) -> None:
+        self.c.print("""
+[bold]Just a handle[/bold]
+  [cyan]teamingzooper[/cyan]
+
+[bold]A name — commas keep it together[/bold]
+  [cyan]alex rivera, ajr, ajr@example.com[/cyan]
+
+[bold]Add what you know about them after a semicolon[/bold]
+  [cyan]alex rivera, ajr; northwind labs, portland[/cyan]
+  [dim]Those are never searched. They are matched against what comes back,
+  which is what separates your subject from everyone sharing the handle.[/dim]
+
+[bold]Check your own footprint[/bold]
+  [cyan]yourhandle, you@example.com -d[/cyan]
+
+[bold]Flags work anywhere on the line[/bold]
+  [cyan]alex@example.com -q[/cyan]      [dim]quick — mainstream sites only[/dim]
+  [cyan]ajr -d; acme corp[/cyan]        [dim]deep sweep, cross-checked[/dim]
+""")
+
     def _web(self, rest: list[str]) -> None:
         """Hand this session over to the browser UI until it is stopped."""
         from .web.server import serve
@@ -654,8 +747,15 @@ class Console:
     def run(self) -> int:
         ready = sum(1 for r in adapter_status() if r["available"])
         self.c.print(banner(self.c.size.width, __version__, ready, self.auth.case))
-        self.c.print("  [dim]type[/dim] [cyan]help[/cyan][dim], or just start "
-                     "typing what you know[/dim]\n")
+        self.c.print(
+            "  [dim]Type what you know and press Enter. Use commas between "
+            "things, and a\n  semicolon before anything that describes them "
+            "rather than identifies them:[/dim]\n"
+            "    [cyan]alex rivera, ajr@example.com[/cyan][bold];[/bold] "
+            "[magenta]northwind labs[/magenta]\n"
+            "  [dim]More:[/dim] [cyan]examples[/cyan][dim] · [/dim]"
+            "[cyan]help[/cyan][dim] · [/dim][cyan]web[/cyan][dim] for the "
+            "browser UI[/dim]\n")
 
         while True:
             try:
@@ -752,6 +852,21 @@ class Console:
                     self._export(rest[0] if rest else None)
                 elif head == "view":
                     self._view()
+                elif head == "examples":
+                    self._examples()
+                elif head == "undo":
+                    if self.targets:
+                        gone = self.targets.pop()
+                        self.c.print(f"[green]removed[/green] {gone.value}")
+                    elif self.secondary:
+                        self.c.print(f"[green]removed[/green] {self.secondary.pop()}")
+                    else:
+                        self.c.print("[dim]Nothing to undo.[/dim]")
+                elif head == "again":
+                    if self.targets:
+                        self._scan()
+                    else:
+                        self.c.print("[dim]Nothing loaded to re-run.[/dim]")
                 elif head in ("web", "ui"):
                     self._web(rest)
                 elif head == "found":

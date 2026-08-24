@@ -141,6 +141,34 @@ login and serves personal data. Tunnel over SSH if you need it elsewhere. The
 authorisation gate and audit log apply exactly as they do in the console, and
 nothing is written to disk until you press Export.
 
+## It checks your query before spending your time
+
+The most expensive mistake this tool allows is a bad query. Typing a name
+without commas splits it into separate handles, and searching `michael`,
+`field` and `trip` returns nine hundred accounts belonging to ninety
+different people — ninety seconds to produce something useless.
+
+So it says so first, in the console and in the UI:
+
+```
+! 4 separate handles were read from what looks like one name:
+  'michael', 'sllverstein', 'field', 'trip'.
+  Use commas so it stays together: michael sllverstein field trip
+! 'michael' is a common given name — thousands of people hold this handle.
+! 'field' is an ordinary English word — held on most platforms already.
+› Add something you know about them after a semicolon — employer, school,
+  city. It is never searched, only used to tell the real accounts from
+  the coincidences.
+
+Rough guess: this could return 13,365+ accounts, most of them other people.
+Suggested: michael sllverstein field trip, mdsilvers11@icloud.com
+
+fix it / scan anyway / cancel:
+```
+
+One keystroke rewrites it. It never blocks a scan — a deliberately broad
+sweep is legitimate — it just refuses to let one happen by accident.
+
 ## Primary vs secondary input
 
 **Primary** identifies the person and gets searched: names, handles, emails,

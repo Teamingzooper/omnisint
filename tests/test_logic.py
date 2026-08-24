@@ -262,6 +262,44 @@ check("unknown setting is reported", "Unknown setting" in _buf.getvalue())
 _con._set("timeout", "abc")
 check("non-numeric setting is reported", "not a valid int" in _buf.getvalue())
 
+# --- pre-flight query review ----------------------------------------------
+print("\npre-flight advice")
+from omnisint.advice import collision_risk as _risk, review as _review
+
+
+def _seeds(*vals):
+    return [Identifier.parse(v) for v in vals]
+
+
+# The query that produced 928 accounts across 92 people must be caught.
+_r = _review(_seeds("michael", "sllverstein", "field", "trip",
+                    "mdsilvers11@icloud.com"), [])
+check("a name typed without commas is detected",
+      any("looks like one name" in p["text"] for p in _r["problems"]))
+check("it offers the corrected query",
+      any(p.get("rewrite", "").startswith("michael sllverstein field trip")
+          for p in _r["problems"]))
+check("common given names are flagged",
+      any("'michael'" in p["text"] for p in _r["problems"]))
+check("ordinary words are flagged",
+      any("'field'" in p["text"] for p in _r["problems"]))
+check("the query is marked noisy", _r["noisy"])
+check("it suggests a cross-check term", any("semicolon" in t for t in _r["suggestions"]))
+
+# The corrected query must come back clean, or the fix button lies.
+check("the suggested rewrite is actually clean",
+      not _review(_seeds("michael sllverstein field trip",
+                         "mdsilvers11@icloud.com"), [])["problems"])
+
+check("a distinctive handle is not nagged about",
+      not _review(_seeds("teamingzooper"), [])["problems"])
+check("digits make a handle distinctive", _risk(Identifier.parse("michael88")) is None)
+check("very short handles are flagged", _risk(Identifier.parse("ajr"))[0] == "high")
+check("emails are never flagged", _risk(Identifier.parse("a@b.com")) is None)
+check("supplying a cross-check silences that suggestion",
+      not any("semicolon" in t
+              for t in _review(_seeds("michael"), ["Acme"])["suggestions"]))
+
 # --- a shorter name is not a different person -----------------------------
 print("\nname compatibility")
 from omnisint.correlate import name_relation as _rel

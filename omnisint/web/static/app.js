@@ -572,10 +572,82 @@ async function poll() {
   }
 }
 
-async function startScan(withPins) {
+function showAdvice(a) {
+  const host = $("advice"); clear(host);
+  if (!a || (!a.problems.length && !a.suggestions.length)) {
+    host.className = "advice hidden"; return;
+  }
+  host.className = "advice" + (a.noisy ? " bad" : "");
+  a.problems.forEach(p => {
+    const d = el("div", "aprob");
+    d.appendChild(el("span", "amark", p.level === "high" ? "!" : "·"));
+    d.appendChild(document.createTextNode(" " + p.text));
+    if (p.fix) d.appendChild(el("div", "afix", p.fix));
+    host.appendChild(d);
+  });
+  a.suggestions.forEach(t => host.appendChild(el("div", "atip", "› " + t)));
+
+  const rewrite = (a.problems.find(p => p.rewrite) || {}).rewrite;
+  if (a.noisy) {
+    const row = el("div", "arow");
+    row.appendChild(el("span", "ahint",
+      `Rough guess: ${a.expected_hits.toLocaleString()}+ accounts, most of them other people.`));
+    if (rewrite) {
+      const fix = el("button", null, "Fix it");
+      fix.title = rewrite;
+      fix.onclick = () => {
+        $("targets").value = rewrite;
+        showAdvice(null);          // clear now; re-check confirms it
+        checkAdvice();
+        $("targets").focus();
+      };
+      row.appendChild(fix);
+    }
+    const anyway = el("button", null, "Scan anyway");
+    anyway.onclick = () => startScan(false, true);
+    row.appendChild(anyway);
+    const hide = el("button", null, "Dismiss");
+    hide.onclick = () => { host.className = "advice hidden"; };
+    row.appendChild(hide);
+    host.appendChild(row);
+  }
+}
+
+let adviceTimer = null;
+let adviceSeq = 0;
+async function checkAdvice() {
+  clearTimeout(adviceTimer);
+  adviceTimer = setTimeout(async () => {
+    const raw = $("targets").value.trim();
+    if (!raw) { showAdvice(null); return; }
+    // Requests can overtake each other while typing. Stamp each one and
+    // drop any reply that is no longer the latest, or a slow response to an
+    // old keystroke will paint stale warnings over correct ones.
+    const seq = ++adviceSeq;
+    try {
+      const advice = await api("/api/advise", { method: "POST",
+        body: JSON.stringify({ targets: raw }) });
+      if (seq === adviceSeq) showAdvice(advice);
+    } catch {
+      if (seq === adviceSeq) showAdvice(null);
+    }
+  }, 350);
+}
+
+async function startScan(withPins, force) {
   const raw = $("targets").value.trim();
   const pins = withPins ? [...state.pins.values()] : [];
   if (!raw && !pins.length) { status("Type something to scan first."); return; }
+
+  // Say what is about to go wrong before spending a minute proving it.
+  if (!force && raw) {
+    try {
+      const a = await api("/api/advise", { method: "POST",
+        body: JSON.stringify({ targets: raw }) });
+      if (a.noisy) { showAdvice(a); status("Check the warnings above, then Scan anyway."); return; }
+    } catch { /* advice is a courtesy; never block a scan on it */ }
+  }
+  showAdvice(null);
   $("go").disabled = true; $("stopHint").disabled = false;
   $("export").disabled = true;
   clear($("log")); $("bar").style.width = "0";
@@ -606,7 +678,8 @@ async function startScan(withPins) {
 $("rescan").onclick = () => startScan(true);
 $("clearPins").onclick = () => { state.pins.clear(); renderPins(); render(); };
 $("go").onclick = () => startScan(false);
-$("targets").addEventListener("keydown", e => { if (e.key === "Enter") startScan(); });
+$("targets").addEventListener("keydown", e => { if (e.key === "Enter") startScan(false); });
+$("targets").addEventListener("input", checkAdvice);
 
 $("export").onclick = async () => {
   try {

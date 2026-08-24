@@ -293,6 +293,17 @@ def make_handler(state: State, token: str):
             except json.JSONDecodeError:
                 return self._fail(HTTPStatus.BAD_REQUEST, "malformed JSON")
 
+            if url.path == "/api/advise":
+                raw = payload.get("targets") or ""
+                primary, sec = (ConsoleApp.parse_line(raw) if isinstance(raw, str)
+                                else ([str(x) for x in raw], []))
+                seeds = [Identifier.parse(x) for x in primary]
+                from ..advice import review
+                return self._json({
+                    **review([s for s in seeds if s.type is not IdType.UNKNOWN], sec),
+                    "parsed": [{"value": s.value, "type": s.type.value} for s in seeds],
+                })
+
             if url.path == "/api/scan":
                 raw = payload.get("targets") or []
                 if isinstance(raw, str):

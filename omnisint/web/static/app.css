@@ -114,6 +114,17 @@ fieldset { margin: 0; padding: 6px 8px 8px;
   border-bottom-color: var(--light); }
 legend { padding: 0 3px; }
 
+/* -- pre-flight advice --------------------------------------------------- */
+.advice { margin: 0 3px 2px; padding: 5px 8px; flex: 0 0 auto;
+  background: #ffffe1; border: 1px solid var(--shadow); }
+.advice.bad { background: #ffe8e8; }
+.advice.hidden { display: none; }
+.aprob { margin: 2px 0; }
+.amark { font-weight: bold; color: #a00000; }
+.afix, .atip { color: var(--dim); margin-left: 14px; }
+.arow { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+.ahint { flex: 1 1 auto; color: var(--dim); }
+
 /* -- layout ------------------------------------------------------------- */
 .body { flex: 1 1 auto; display: flex; gap: 3px; min-height: 0; padding: 0 1px 1px; }
 .left { width: 232px; flex: 0 0 auto; display: flex; flex-direction: column; gap: 3px; }
