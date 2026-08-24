@@ -70,6 +70,7 @@ scan — it does not exit; use [cyan]quit[/cyan] for that.
   [cyan]set <opt> <v>[/cyan]   timeout, workers, top-sites, min-confidence
   [cyan]opts[/cyan]            show current settings
   [cyan]tools[/cyan]           which backends are installed
+  [cyan]web[/cyan]             open the local browser UI (Ctrl-C returns here)
   [cyan]found[/cyan]           identifiers the scan discovered — search them too
   [cyan]view[/cyan] / [cyan]last[/cyan]     reopen the last report in the browser
   [cyan]export [dir][/cyan]    write JSON + HTML + Markdown (never automatic)
@@ -109,7 +110,7 @@ _COMMANDS = {"scan", "go", "run", "show", "drop", "deep", "pivot", "set",
              "opts", "options", "tools", "last", "save", "help", "?", "quit",
              "exit", "q", "clear", "expand", "quick", "standard", "verbose",
              "-q", "-d", "-v", "-s", "export", "view", "sec", "secondary",
-             "+", "found"}
+             "+", "found", "web", "ui"}
 
 
 class Console:
@@ -585,6 +586,21 @@ class Console:
         self.c.print(f"\n[dim]{len(chosen)} added — press Enter to scan, or "
                      "add more first.[/dim]\n")
 
+    def _web(self, rest: list[str]) -> None:
+        """Hand this session over to the browser UI until it is stopped."""
+        from .web.server import serve
+
+        port = 8787
+        if rest and rest[0].isdigit():
+            port = int(rest[0])
+        self.c.print("[dim]Starting the local UI — Ctrl-C here to stop it and "
+                     "come back to the prompt.[/dim]")
+        try:
+            serve(self.auth, self.opts, self.outdir, port=port, console=self.c)
+        except KeyboardInterrupt:
+            pass
+        self.c.print("[dim]Back at the prompt.[/dim]")
+
     def _export(self, arg: str | None = None) -> None:
         if self.last is None:
             self.c.print("[yellow]Nothing to export yet.[/yellow]")
@@ -736,6 +752,8 @@ class Console:
                     self._export(rest[0] if rest else None)
                 elif head == "view":
                     self._view()
+                elif head in ("web", "ui"):
+                    self._web(rest)
                 elif head == "found":
                     self.declined.clear()
                     if not self.discovered():

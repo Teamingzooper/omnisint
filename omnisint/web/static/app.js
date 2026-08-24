@@ -1,0 +1,543 @@
+/* Omnisint UI. Plain DOM, no framework, no external requests.
+   Everything rendered here is untrusted third-party data, so it is inserted
+   as text nodes — never as HTML. */
+"use strict";
+
+const TOKEN = new URLSearchParams(location.search).get("t") || "";
+const $ = (id) => document.getElementById(id);
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, {
+    ...opts,
+    headers: { "X-Omnisint-Token": TOKEN, "Content-Type": "application/json",
+               ...(opts.headers || {}) },
+  });
+  const body = await res.json().catch(() => ({ error: res.statusText }));
+  if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
+  return body;
+}
+
+const state = {
+  runId: null, profile: null, tab: "accounts",
+  rows: [], selected: null, sort: { key: "confidence", dir: -1 }, poll: null,
+};
+
+/* -- helpers ------------------------------------------------------------ */
+const pct = (x) => `${Math.round((x || 0) * 100)}%`;
+function el(tag, cls, text) {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text !== undefined) n.textContent = text;   // text, never innerHTML
+  return n;
+}
+function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
+function attrClass(a) {
+  if (a.corroborated_by && a.corroborated_by.length) return "subject";
+  if (a.attribution_level === "likely different person") return "other";
+  return a.level;
+}
+function status(msg) { $("status").textContent = msg; }
+
+function dialog(title, build) {
+  $("dlgTitle").textContent = title;
+  const body = $("dlgBody"); clear(body); build(body);
+  $("modal").classList.add("show");
+}
+const closeDialog = () => $("modal").classList.remove("show");
+$("dlgOk").onclick = closeDialog;
+$("dlgX").onclick = closeDialog;
+$("modal").onclick = (e) => { if (e.target === $("modal")) closeDialog(); };
+addEventListener("keydown", (e) => { if (e.key === "Escape") closeDialog(); });
+
+/* -- tabs --------------------------------------------------------------- */
+const TABS = [
+  { key: "accounts",  label: "Accounts" },
+  { key: "identity",  label: "Identity" },
+  { key: "personas",  label: "Identities" },
+  { key: "found",     label: "Discovered" },
+  { key: "infra",     label: "Infrastructure" },
+  { key: "breaches",  label: "Breaches" },
+  { key: "tools",     label: "Tools" },
+  { key: "caveats",   label: "Caveats" },
+];
+
+function counts(key) {
+  const p = state.profile;
+  if (!p) return "";
+  switch (key) {
+    case "accounts": return p.accounts.length;
+    case "identity": return Object.keys(p.identity.names || {}).length;
+    case "personas": return (p.personas || []).length;
+    case "found":    return (p.identifiers || []).filter(i => i.origin !== "input").length;
+    case "infra":    return Object.keys(p.infrastructure || {}).length
+                          + Object.keys(p.phones || {}).length;
+    case "breaches": return (p.breaches || []).length;
+    case "tools":    return (p.runs || []).length;
+    case "caveats":  return (p.warnings || []).length;
+  }
+  return "";
+}
+
+function renderTabs() {
+  const bar = $("tabs"); clear(bar);
+  for (const t of TABS) {
+    const node = el("div", "tab" + (state.tab === t.key ? " on" : ""));
+    node.appendChild(document.createTextNode(t.label));
+    const c = counts(t.key);
+    if (c !== "" && c !== 0) node.appendChild(el("span", "count", ` (${c})`));
+    node.onclick = () => { state.tab = t.key; state.selected = null; render(); };
+    bar.appendChild(node);
+  }
+}
+
+/* -- grid --------------------------------------------------------------- */
+function grid(columns, rows, onSelect, rowClass) {
+  const host = $("grid"); clear(host);
+  if (!rows.length) { host.appendChild(el("div", "empty", "Nothing here.")); return; }
+
+  const table = el("table", "grid");
+  const head = el("tr");
+  for (const col of columns) {
+    const th = el("th");
+    th.appendChild(document.createTextNode(col.label));
+    if (col.sortable !== false) {
+      if (state.sort.key === col.key)
+        th.appendChild(el("span", "arrow", state.sort.dir < 0 ? " ▼" : " ▲"));
+      th.onclick = () => {
+        const s = state.sort;
+        s.dir = s.key === col.key ? -s.dir : -1;
+        s.key = col.key;
+        render();
+      };
+    }
+    if (col.width) th.style.width = col.width;
+    head.appendChild(th);
+  }
+  table.appendChild(head);
+
+  const sorted = rows.slice().sort((a, b) => {
+    const k = state.sort.key;
+    if (!(k in a) && !(k in b)) return 0;
+    const x = a[k], y = b[k];
+    const c = (typeof x === "number" && typeof y === "number")
+      ? x - y : String(x ?? "").localeCompare(String(y ?? ""));
+    return c * state.sort.dir;
+  });
+
+  sorted.forEach((row, i) => {
+    const tr = el("tr", rowClass ? rowClass(row) : "");
+    for (const col of columns) {
+      const td = el("td", col.cls || "");
+      const v = col.render ? col.render(row) : row[col.key];
+      if (v instanceof Node) td.appendChild(v);
+      else td.appendChild(document.createTextNode(v === undefined || v === null ? "" : String(v)));
+      if (col.title) td.title = col.title(row);
+      tr.appendChild(td);
+    }
+    tr.onclick = () => {
+      table.querySelectorAll("tr.sel").forEach(n => n.classList.remove("sel"));
+      tr.classList.add("sel");
+      state.selected = row;
+      if (onSelect) onSelect(row);
+    };
+    if (state.selected && row === state.selected) tr.classList.add("sel");
+    table.appendChild(tr);
+    if (i === 0 && !state.selected && onSelect) { state.selected = row; onSelect(row); tr.classList.add("sel"); }
+  });
+  host.appendChild(table);
+}
+
+function link(url) {
+  if (!url) return document.createTextNode("—");
+  const a = el("a", null, url);
+  a.href = url; a.target = "_blank"; a.rel = "noreferrer noopener";
+  return a;
+}
+
+/* -- detail tree -------------------------------------------------------- */
+function detail(title, pairs, notes) {
+  $("detailCaption").textContent = title;
+  const host = $("detail"); clear(host);
+  (notes || []).forEach(n => {
+    const d = el("div", "node " + (n.tone || ""), n.text);
+    host.appendChild(d);
+  });
+  if (pairs && pairs.length) {
+    host.appendChild(el("div", "node grp", "▼ Fields returned"));
+    for (const [k, v] of pairs) {
+      const row = el("div", "node");
+      row.appendChild(el("span", "k", `   ${k}: `));
+      row.appendChild(el("span", "v", String(v)));
+      host.appendChild(row);
+    }
+  }
+  if (!host.childNodes.length)
+    host.appendChild(el("span", "hint", "Nothing extracted for this row."));
+}
+
+function showAccount(a) {
+  const notes = [
+    { text: `${a.platform} — exists ${pct(a.confidence)} (${a.level}), `
+          + `same person ${pct(a.attribution)} (${a.attribution_level})` },
+    { text: `   sources: ${(a.sources || []).join(", ")}` , tone: "" },
+  ];
+  if (a.persona) notes.push({ text: `   identity: ${a.persona} — ${a.persona_note || ""}`,
+                              tone: a.attribution_level === "likely different person" ? "warn" : "" });
+  if (a.corroborated_by && a.corroborated_by.length)
+    notes.push({ text: `   ± corroborated by: ${a.corroborated_by.join(", ")}`, tone: "good" });
+  if (a.url) notes.push({ text: `   ${a.url}` });
+  detail(`Detail — ${a.platform}`, Object.entries(a.metadata || {}), notes);
+}
+
+/* -- views -------------------------------------------------------------- */
+function viewAccounts() {
+  grid([
+    { key: "confidence", label: "Exists", width: "62px", cls: "num",
+      render: r => pct(r.confidence) },
+    { key: "attribution", label: "Same?", width: "78px", cls: "num",
+      render: r => (r.attribution_level === "same person" ? "✔ "
+                  : r.attribution_level === "likely different person" ? "✖ " : "? ")
+                  + pct(r.attribution) },
+    { key: "platform", label: "Platform", width: "150px" },
+    { key: "url", label: "URL", render: r => link(r.url), sortable: false },
+    { key: "sources_s", label: "Sources", width: "132px" },
+    { key: "extract", label: "Extracted", sortable: false },
+  ], state.profile.accounts.map(a => ({
+      ...a,
+      sources_s: (a.sources || []).join(","),
+      extract: (a.corroborated_by || []).length
+        ? "± " + a.corroborated_by.join(", ")
+        : Object.entries(a.metadata || {}).filter(([k]) => k !== "avatar")
+            .slice(0, 2).map(([k, v]) => `${k}=${v}`).join(", "),
+    })), showAccount, attrClass);
+}
+
+function viewIdentity() {
+  const p = state.profile, rows = [];
+  const push = (kind, map) => Object.entries(map || {}).forEach(([value, seen]) =>
+    rows.push({ kind, value, seen: seen.join(", "), n: seen.length }));
+  push("Name", p.identity.names); push("Location", p.identity.locations);
+  push("Bio", p.identity.bios); push("Avatar", p.identity.avatars);
+  grid([
+    { key: "kind", label: "Attribute", width: "80px" },
+    { key: "n", label: "Seen", width: "50px", cls: "num" },
+    { key: "value", label: "Value" },
+    { key: "seen", label: "Platforms" },
+  ], rows, r => detail(`Detail — ${r.kind}`, [["value", r.value], ["platforms", r.seen]],
+      [{ text: r.n > 1 ? `✔ corroborated on ${r.n} platforms` : "seen on one platform only",
+         tone: r.n > 1 ? "good" : "warn" }]));
+}
+
+function viewPersonas() {
+  const rows = (state.profile.personas || []).map(p => ({
+    ...p, role: p.primary ? "PRIMARY — your subject"
+        : (state.profile.personas.some(x => x.primary) ? "likely someone else" : "unresolved"),
+    where: p.platforms.join(", "), n: p.platforms.length }));
+  grid([
+    { key: "name", label: "Identity", width: "180px" },
+    { key: "role", label: "Assessment", width: "170px" },
+    { key: "n", label: "#", width: "36px", cls: "num" },
+    { key: "where", label: "Platforms" },
+  ], rows, r => detail(`Detail — ${r.name}`, [], [{ text: r.note, tone: r.primary ? "good" : "warn" }]),
+    r => (r.primary ? "subject" : (r.role === "unresolved" ? "possible" : "other")));
+}
+
+function viewFound() {
+  const rows = (state.profile.identifiers || []).filter(i => i.origin !== "input");
+  grid([
+    { key: "value", label: "Identifier", width: "260px" },
+    { key: "type", label: "Type", width: "80px" },
+    { key: "origin", label: "Discovered via" },
+  ], rows, r => detail(`Detail — ${r.value}`, [], [
+      { text: `${r.type} found by ${r.origin}` },
+      { text: "Use the Scan box to search this identifier in its own right.",
+        tone: "" }]),
+    r => (r.type === "email" ? "confirmed" : "possible"));
+  const host = $("grid");
+  if (rows.length) {
+    const bar = el("div", "footbar");
+    const b = el("button", null, "Add all to targets");
+    b.onclick = () => {
+      $("targets").value = rows.map(r => r.value).join(", ");
+      status(`${rows.length} identifier(s) queued — press Scan to search them.`);
+    };
+    bar.appendChild(b);
+    host.appendChild(bar);
+  }
+}
+
+function viewInfra() {
+  const p = state.profile, rows = [];
+  Object.entries(p.infrastructure || {}).forEach(([domain, info]) =>
+    rows.push({ what: "domain", key: domain,
+      summary: ["a", "mx", "ns", "spf"].filter(k => info[k])
+        .map(k => `${k.toUpperCase()}: ${info[k].slice(0, 3).join(", ")}`).join("  |  "),
+      info }));
+  Object.entries(p.phones || {}).forEach(([num, info]) =>
+    rows.push({ what: "phone", key: num,
+      summary: `${info.region} · ${info.location} · ${info.line_type}`
+             + (info.valid ? "" : " · NOT VALID"), info }));
+  grid([
+    { key: "what", label: "Kind", width: "70px" },
+    { key: "key", label: "Identifier", width: "200px" },
+    { key: "summary", label: "Records" },
+  ], rows, r => detail(`Detail — ${r.key}`, Object.entries(r.info)
+      .map(([k, v]) => [k, Array.isArray(v) ? v.join(", ") : v])));
+}
+
+function viewBreaches() {
+  grid([
+    { key: "source", label: "Source", width: "170px" },
+    { key: "identifier", label: "Identifier", width: "220px" },
+    { key: "name", label: "Detail" },
+  ], (state.profile.breaches || []).map(b => ({ ...b, name: b.name || String(b.detail || "") })),
+    r => detail(`Detail — ${r.source}`, Object.entries(r),
+      [{ text: r.meaning || "", tone: "warn" }]), () => "other");
+}
+
+function viewTools() {
+  grid([
+    { key: "adapter", label: "Tool", width: "120px" },
+    { key: "identifier", label: "Identifier", width: "200px" },
+    { key: "ok", label: "Status", width: "130px",
+      render: r => (r.ok ? "ok" : (r.error || "failed")) },
+    { key: "found", label: "Hits", width: "56px", cls: "num" },
+    { key: "inconclusive", label: "No verdict", width: "84px", cls: "num" },
+    { key: "duration", label: "Time", width: "64px", cls: "num",
+      render: r => `${r.duration.toFixed(1)}s` },
+  ], state.profile.runs || [],
+    r => detail(`Detail — ${r.adapter}`, Object.entries(r),
+      r.ok ? [] : [{ text: "This tool contributed nothing. Absence here is not "
+                          + "evidence of absence.", tone: "warn" }]),
+    r => (r.ok ? (r.found ? "confirmed" : "weak") : "other"));
+}
+
+function viewCaveats() {
+  const rows = (state.profile.warnings || []).map((w, i) => ({ i: i + 1, text: w }));
+  grid([{ key: "i", label: "#", width: "36px", cls: "num" },
+        { key: "text", label: "Caveat", sortable: false }],
+    rows, r => detail("Detail — caveat", [], [{ text: r.text, tone: "warn" }]),
+    () => "probable");
+  const gaps = state.profile.coverage_gaps || {};
+  if (Object.keys(gaps).length) {
+    const host = $("grid"), t = el("table", "grid");
+    const h = el("tr");
+    ["Tool", "Why no verdict", "Sites"].forEach(x => h.appendChild(el("th", null, x)));
+    t.appendChild(h);
+    for (const [tool, reasons] of Object.entries(gaps))
+      for (const [reason, n] of Object.entries(reasons)) {
+        const tr = el("tr", "weak");
+        tr.appendChild(el("td", null, tool));
+        tr.appendChild(el("td", null, reason));
+        tr.appendChild(el("td", "num", String(n)));
+        t.appendChild(tr);
+      }
+    host.appendChild(el("div", "caption", "Coverage gaps — unchecked, not clear"));
+    host.appendChild(t);
+  }
+}
+
+const VIEWS = { accounts: viewAccounts, identity: viewIdentity, personas: viewPersonas,
+                found: viewFound, infra: viewInfra, breaches: viewBreaches,
+                tools: viewTools, caveats: viewCaveats };
+
+/* -- render ------------------------------------------------------------- */
+function render() {
+  renderTabs();
+  if (!state.profile) return;
+  const p = state.profile;
+
+  const seeds = $("seeds"); clear(seeds);
+  p.seeds.forEach(s => {
+    const li = el("li");
+    li.appendChild(document.createTextNode(s.value));
+    li.appendChild(el("span", "type", s.type));
+    seeds.appendChild(li);
+  });
+  (p.secondary_terms || []).forEach(t => {
+    const li = el("li");
+    li.appendChild(el("span", "badge", "±"));
+    li.appendChild(document.createTextNode(" " + t));
+    li.appendChild(el("span", "type", "cross-check"));
+    seeds.appendChild(li);
+  });
+
+  const per = $("personas"); clear(per);
+  if (!(p.personas || []).length) per.appendChild(el("li", "hint", "No names extracted."));
+  p.personas.forEach(x => {
+    const li = el("li");
+    li.appendChild(el("span", "badge", x.primary ? "★" : "?"));
+    li.appendChild(document.createTextNode(" " + x.name));
+    li.appendChild(el("span", "type", `${x.platforms.length}`));
+    per.appendChild(li);
+  });
+
+  const same = p.accounts.filter(a => a.attribution_level === "same person").length;
+  const diff = p.accounts.filter(a => a.attribution_level === "likely different person").length;
+  $("counts").textContent = `${p.accounts.length} accounts · ${same} subject · ${diff} other`;
+  $("wtitle").textContent = "Omnisint — " + p.seeds.map(s => s.value).join(", ");
+  (VIEWS[state.tab] || viewAccounts)();
+}
+
+/* -- run lifecycle ------------------------------------------------------ */
+function logLine(ev) {
+  const host = $("log");
+  const cls = ev.kind === "done" ? "ok" : ev.kind === "fail" ? "fail"
+            : ev.kind === "warn" ? "warn" : "start";
+  const mark = ev.kind === "done" ? "✔" : ev.kind === "fail" ? "✖"
+            : ev.kind === "warn" ? "!" : "·";
+  host.appendChild(el("div", cls, `${mark} ${ev.message}`));
+  host.scrollTop = host.scrollHeight;
+}
+
+async function poll() {
+  if (!state.runId) return;
+  let run;
+  try { run = await api(`/api/run/${state.runId}`); }
+  catch (e) { status(`Lost the run: ${e.message}`); clearInterval(state.poll); return; }
+
+  const host = $("log");
+  const shown = host.childElementCount;
+  run.events.slice(shown).forEach(logLine);
+
+  const total = run.events.filter(e => e.kind === "start").length || 1;
+  const done = run.events.filter(e => e.kind === "done" || e.kind === "fail").length;
+  $("bar").style.width = `${Math.min(100, (done / total) * 100)}%`;
+
+  if (run.state === "running") {
+    status(`Scanning… ${done}/${total} tasks · ${run.elapsed.toFixed(0)}s`);
+    return;
+  }
+  clearInterval(state.poll); state.poll = null;
+  $("go").disabled = false; $("stopHint").disabled = true;
+  $("bar").style.width = "100%";
+
+  if (run.state === "failed") {
+    status(`Scan failed: ${run.error}`);
+    dialog("Scan failed", b => b.appendChild(el("div", null, run.error || "unknown error")));
+    return;
+  }
+  state.profile = run.profile;
+  state.selected = null;
+  $("export").disabled = false;
+  status(`Done in ${run.elapsed.toFixed(1)}s.`);
+  render();
+
+  const fresh = (run.profile.identifiers || []).filter(i => i.origin !== "input");
+  if (fresh.length) {
+    status(`Done in ${run.elapsed.toFixed(1)}s — ${fresh.length} new identifier(s) found.`);
+    dialog("New identifiers found", b => {
+      b.appendChild(el("div", null,
+        `This scan turned up ${fresh.length} identifier(s) that were not searched:`));
+      const ul = el("ul", "dlglist list");
+      fresh.slice(0, 12).forEach(i => {
+        const li = el("li");
+        li.appendChild(el("span", "badge", i.type === "email" ? "@" : "u"));
+        li.appendChild(document.createTextNode(" " + i.value));
+        li.appendChild(el("span", "type", i.origin));
+        ul.appendChild(li);
+      });
+      b.appendChild(ul);
+      const add = el("button", null, "Queue all for the next scan");
+      add.onclick = () => {
+        $("targets").value = fresh.map(i => i.value).join(", ");
+        closeDialog();
+        status("Queued — press Scan to search them.");
+      };
+      b.appendChild(add);
+      b.appendChild(el("div", "hint",
+        " A hit on one of these proves the handle exists, not that it is your subject."));
+    });
+  }
+}
+
+async function startScan() {
+  const raw = $("targets").value.trim();
+  if (!raw) { status("Type something to scan first."); return; }
+  $("go").disabled = true; $("stopHint").disabled = false;
+  $("export").disabled = true;
+  clear($("log")); $("bar").style.width = "0";
+  state.profile = null; state.selected = null;
+  clear($("grid")); $("grid").appendChild(el("div", "empty", "Scanning…"));
+  status("Starting…");
+  try {
+    const { id } = await api("/api/scan", { method: "POST", body: JSON.stringify({
+      targets: raw,
+      preset: $("preset").value,
+      options: { hudson: $("hudson").checked, darkweb: $("darkweb").checked,
+                 nsfw: $("nsfw").checked },
+    })});
+    state.runId = id;
+    state.poll = setInterval(poll, 700);
+    poll();
+  } catch (e) {
+    $("go").disabled = false; $("stopHint").disabled = true;
+    status(e.message);
+    dialog("Cannot start scan", b => b.appendChild(el("div", null, e.message)));
+  }
+}
+
+/* -- wiring ------------------------------------------------------------- */
+$("go").onclick = startScan;
+$("targets").addEventListener("keydown", e => { if (e.key === "Enter") startScan(); });
+
+$("export").onclick = async () => {
+  try {
+    const { files } = await api(`/api/export/${state.runId}`, { method: "POST" });
+    dialog("Exported", b => {
+      b.appendChild(el("div", null, "Written with permissions 600:"));
+      const pre = el("div", "tree");
+      files.forEach(f => pre.appendChild(el("div", "node", f)));
+      b.appendChild(pre);
+      b.appendChild(el("div", "hint",
+        "A report is personal data. Keep it minimal and delete it when done."));
+    });
+  } catch (e) { dialog("Export failed", b => b.appendChild(el("div", null, e.message))); }
+};
+
+$("toolsBtn").onclick = async () => {
+  const { backends } = await api("/api/tools");
+  dialog("Backends", b => {
+    const t = el("table", "grid");
+    const h = el("tr");
+    ["Backend", "Status", "Accepts", "Install"].forEach(x => h.appendChild(el("th", null, x)));
+    t.appendChild(h);
+    backends.forEach(r => {
+      const tr = el("tr", r.available ? "confirmed" : "weak");
+      tr.appendChild(el("td", null, r.name + (r.opt_in ? " (opt-in)" : "")));
+      tr.appendChild(el("td", null, r.available ? "ready" : "missing"));
+      tr.appendChild(el("td", null, (r.accepts || []).join(", ")));
+      tr.appendChild(el("td", null, r.install || ""));
+      t.appendChild(tr);
+    });
+    b.appendChild(t);
+  });
+};
+
+$("helpBtn").onclick = () => dialog("About Omnisint", b => {
+  [["Primary", "things that identify the person — searched: names, handles, emails, phones, domains."],
+   ["Secondary", "things you know about them — never searched, only cross-checked. Put them after a semicolon: alex rivera; northwind labs"],
+   ["Exists", "the handle is registered on that platform."],
+   ["Same?", "evidence it belongs to your subject. A different question, scored separately — a shared username is not a shared identity."],
+   ["Row colours", "green = corroborated as your subject, red = probably a different person, yellow/blue = weaker existence evidence."],
+  ].forEach(([k, v]) => {
+    const d = el("div", "spaced");
+    d.appendChild(el("b", null, k + " — "));
+    d.appendChild(document.createTextNode(v));
+    b.appendChild(d);
+  });
+  b.appendChild(el("div", "hint",
+    " Findings are unverified third-party signals. Treat anything short of "
+    + "confirmed + same person as a lead, not a fact."));
+});
+
+(async function boot() {
+  renderTabs();
+  try {
+    const meta = await api("/api/meta");
+    $("case").textContent = `case ${meta.case || "—"} · ${meta.operator}`;
+    status(`Ready · v${meta.version} · reports → ${meta.reports_dir}`);
+  } catch (e) {
+    status("Cannot reach the Omnisint server. Restart it with `omni web`.");
+  }
+})();

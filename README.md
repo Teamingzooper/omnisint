@@ -52,6 +52,46 @@ That drops you into the console. Type everything you have and press Enter:
 Then the report opens in a full-screen browser you page through with the
 arrow keys — not one endless wall of text.
 
+## The web UI
+
+```bash
+omni web            # or `web` from inside the console
+```
+
+Opens a local UI in your browser: Windows 98 chrome over a Wireshark-style
+data grid, because a few hundred findings are still best read as a dense
+sortable table with coloured rows.
+
+```
+┌ Omnisint — torvalds ────────────────────────────────────────────── _ □ ✕ ┐
+│ Scan  View  Tools  Help                                                   │
+│ [torvalds; Linux Foundation, Portland] [▶ Scan] Depth[quick▾] □breach     │
+├──────────┬────────────────────────────────────────────────────────────────┤
+│ Targets  │ Accounts(135) Identity(16) Identities(15) Discovered(2) Tools  │
+│ Identities│ Exists Same? Platform    URL                    Sources        │
+│ Scan log │   97%  ✔95%  Github      github.com/torvalds    maig,sher,user │
+│          │   97%  ✖20%  Instagram   instagram.com/torvalds maig,user      │
+├──────────┴────────────────────────────────────────────────────────────────┤
+│ Detail — Github                                                           │
+│ ▼ Fields returned                                                         │
+│    company: Linux Foundation    location: Portland, OR                    │
+└───────────────────────────────────────────────────────────────────────────┘
+```
+
+Rows are coloured the way Wireshark colours packets: **green** = corroborated
+as your subject, **red** = probably a different person, yellow/blue = weaker
+existence evidence. Click any row to see every field a tool returned in the
+detail pane. Columns sort. Discovered identifiers pop a dialog offering to
+queue them for the next scan.
+
+**It is loopback-only and token-gated.** Any page in your browser can reach
+`localhost`, so the token in the URL is what stops an unrelated tab from
+driving the server or reading your results — treat the URL as a credential.
+Binding to anything other than `127.0.0.1` is refused outright: the UI has no
+login and serves personal data. Tunnel over SSH if you need it elsewhere. The
+authorisation gate and audit log apply exactly as they do in the console, and
+nothing is written to disk until you press Export.
+
 ## Primary vs secondary input
 
 **Primary** identifies the person and gets searched: names, handles, emails,

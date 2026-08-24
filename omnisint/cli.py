@@ -127,6 +127,20 @@ def build_parser() -> argparse.ArgumentParser:
     con.add_argument("--timeout", type=int, default=20)
     con.add_argument("--workers", type=int, default=6)
 
+    web = sub.add_parser("web", help="open the local web UI in a browser")
+    web.add_argument("--port", type=int, default=8787,
+                     help="preferred port (default 8787; tries the next 19)")
+    web.add_argument("--host", default="127.0.0.1",
+                     help="bind address (loopback only unless you know why)")
+    web.add_argument("--no-open", action="store_true",
+                     help="print the URL instead of opening a browser")
+    web.add_argument("--reports", metavar="DIR",
+                     help="where Export writes (default ~/omnisint-reports)")
+    web.add_argument("--case", help="case or engagement reference (recorded)")
+    web.add_argument("--basis", help="what authorises this session (recorded)")
+    web.add_argument("--i-have-authorization", action="store_true",
+                     help="skip the interactive confirmation prompt")
+
     sub.add_parser("tools", help="list backends and whether they are installed")
     sub.add_parser("audit", help="show the local audit log")
     return p
@@ -388,7 +402,7 @@ def cmd_console(args, console) -> int:
     )
 
 
-SUBCOMMANDS = {"scan", "console", "tools", "audit"}
+SUBCOMMANDS = {"scan", "console", "tools", "audit", "web"}
 
 
 def _default_to_console(argv: list[str]) -> list[str]:
@@ -406,6 +420,39 @@ def _default_to_console(argv: list[str]) -> list[str]:
     return ["console", *argv]
 
 
+def cmd_web(args, console) -> int:
+    from .ethics import AuthorizationError, require_authorization
+    from .web.server import serve
+
+    try:
+        auth = require_authorization(
+            accepted=getattr(args, "i_have_authorization", False),
+            basis=getattr(args, "basis", None),
+            case=getattr(args, "case", None),
+            interactive=sys.stdin.isatty(),
+            console=console,
+        )
+    except AuthorizationError as exc:
+        console.print(f"[bold red]{exc}[/bold red]")
+        return 2
+
+    if args.host not in ("127.0.0.1", "localhost", "::1"):
+        # Binding outward exposes an OSINT console and its results to the
+        # network. Refuse rather than make that a one-flag mistake.
+        console.print(
+            f"[bold red]Refusing to bind {args.host}.[/bold red] The UI has no "
+            "login and serves personal data; it is loopback-only by design. "
+            "Use an SSH tunnel if you need it elsewhere.")
+        return 2
+
+    opts = apply_preset(ScanOptions(), "standard")
+    opts.min_confidence = 0.0
+    reports = (Path(args.reports).expanduser() if args.reports
+               else Path.home() / "omnisint-reports")
+    return serve(auth, opts, reports, host=args.host, port=args.port,
+                 open_browser=not args.no_open, console=console)
+
+
 def main(argv: list[str] | None = None) -> int:
     import sys as _sys
     parser = build_parser()
@@ -414,6 +461,12 @@ def main(argv: list[str] | None = None) -> int:
     console = _console()
     if args.command is None:
         args.command = "console"
+    if args.command == "web":
+        try:
+            return cmd_web(args, console)
+        except KeyboardInterrupt:
+            console.print("\n[dim]UI stopped.[/dim]")
+            return 0
     if args.command == "console":
         try:
             return cmd_console(args, console)

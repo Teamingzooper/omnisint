@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Omnisint</title>
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<div id="app" class="out">
+
+  <div class="titlebar">
+    <span class="mark">◉</span>
+    <span id="wtitle">Omnisint — no scan loaded</span>
+    <span class="spacer"></span>
+    <span class="btns">
+      <span class="btn out">_</span><span class="btn out">□</span><span class="btn out">✕</span>
+    </span>
+  </div>
+
+  <div class="menubar">
+    <span><u>S</u>can</span><span><u>V</u>iew</span>
+    <span><u>T</u>ools</span><span><u>H</u>elp</span>
+  </div>
+
+  <div class="toolbar out">
+    <input type="text" id="targets" size="46" spellcheck="false"
+           placeholder="alex rivera, ajr, ajr@example.com; northwind labs">
+    <button id="go">▶ Scan</button>
+    <button id="stopHint" disabled>■ Running…</button>
+    <span class="sep"></span>
+    <label class="nowrap">Depth
+      <select id="preset">
+        <option value="quick">quick — top 50</option>
+        <option value="standard" selected>standard — top 500</option>
+        <option value="deep">deep — everything</option>
+      </select>
+    </label>
+    <label class="chk"><input type="checkbox" id="hudson"> breach</label>
+    <label class="chk"><input type="checkbox" id="darkweb"> dark web</label>
+    <label class="chk"><input type="checkbox" id="nsfw"> nsfw</label>
+    <span class="sep"></span>
+    <button id="export" disabled>Export…</button>
+    <button id="toolsBtn">Backends…</button>
+    <button id="helpBtn">?</button>
+  </div>
+
+  <div class="body">
+    <div class="left">
+      <div class="pane out pane-targets">
+        <div class="caption">Targets</div>
+        <div class="scroll in"><ul class="list" id="seeds">
+          <li class="hint">Nothing loaded.</li></ul></div>
+      </div>
+      <div class="pane out pane-identity">
+        <div class="caption">Identities found</div>
+        <div class="scroll in"><ul class="list" id="personas">
+          <li class="hint">—</li></ul></div>
+      </div>
+      <div class="pane out pane-log">
+        <div class="caption">Scan log</div>
+        <div class="scroll in log" id="log"></div>
+      </div>
+    </div>
+
+    <div class="right">
+      <div class="tabs" id="tabs"></div>
+      <div class="pane out pane-grid">
+        <div class="scroll in" id="grid">
+          <div class="empty">No results yet. Type what you know and press Scan.</div>
+        </div>
+      </div>
+      <div class="pane out pane-detail">
+        <div class="caption" id="detailCaption">Detail</div>
+        <div class="scroll in tree" id="detail">
+          <span class="hint">Select a row to see every field a tool returned.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="statusbar">
+    <span class="cell in grow" id="status">Ready</span>
+    <span class="cell in nowrap" id="counts">—</span>
+    <span class="cell in nowrap" id="case">—</span>
+    <span class="progress in"><span class="bar" id="bar"></span></span>
+  </div>
+</div>
+
+<div class="modal" id="modal">
+  <div class="dialog out">
+    <div class="titlebar"><span class="mark">◉</span><span id="dlgTitle">Omnisint</span>
+      <span class="spacer"></span>
+      <span class="btns"><span class="btn out" id="dlgX">✕</span></span></div>
+    <div class="content">
+      <div id="dlgBody"></div>
+      <div class="row"><button id="dlgOk">OK</button></div>
+    </div>
+  </div>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

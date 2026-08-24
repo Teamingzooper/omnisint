@@ -1,0 +1,224 @@
+/* Omnisint UI — Windows 98 chrome, Wireshark information density.
+   The look is not nostalgia for its own sake: beveled panes make the split
+   layout legible at a glance, and a fixed-width table with coloured rows is
+   still the best way to read a few hundred findings. */
+
+:root {
+  --face:    #c0c0c0;   /* classic 3D face                    */
+  --light:   #ffffff;   /* top-left highlight                 */
+  --shadow:  #808080;   /* bottom-right shadow                */
+  --dark:    #000000;   /* outer shadow                       */
+  --window:  #ffffff;   /* editable/content background        */
+  --title:   #000080;   /* active title bar                   */
+  --title2:  #1084d0;   /* title bar gradient end             */
+  --ink:     #000000;
+  --dim:     #4a4a4a;
+  --select:  #000080;
+
+  /* Wireshark-style row colouring, by confidence and attribution. */
+  --row-confirmed: #d8f5d8;
+  --row-probable:  #fdf6cf;
+  --row-possible:  #e6f0fb;
+  --row-weak:      #f0f0f0;
+  --row-other:     #ffdede;   /* likely a different person    */
+  --row-subject:   #c8ecc8;   /* corroborated as your subject */
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0; height: 100%;
+  background: #008080;                       /* the teal desktop */
+  font: 11px "Pixelated MS Sans Serif", Tahoma, "Segoe UI", Geneva, sans-serif;
+  color: var(--ink);
+  -webkit-font-smoothing: none;
+}
+
+/* -- bevels ------------------------------------------------------------- */
+.out {                                        /* raised   */
+  border: 2px solid;
+  border-color: var(--light) var(--dark) var(--dark) var(--light);
+  box-shadow: inset 1px 1px 0 var(--face), inset -1px -1px 0 var(--shadow);
+  background: var(--face);
+}
+.in {                                         /* sunken   */
+  border: 2px solid;
+  border-color: var(--shadow) var(--light) var(--light) var(--shadow);
+  box-shadow: inset 1px 1px 0 var(--dark), inset -1px -1px 0 var(--face);
+  background: var(--window);
+}
+.thin { border: 1px solid; border-color: var(--shadow) var(--light) var(--light) var(--shadow); }
+
+/* -- window ------------------------------------------------------------- */
+#app {
+  position: absolute; inset: 4px;
+  display: flex; flex-direction: column;
+  padding: 3px; gap: 2px;
+}
+
+.titlebar {
+  display: flex; align-items: center; gap: 6px;
+  padding: 2px 2px 2px 4px;
+  background: linear-gradient(90deg, var(--title), var(--title2));
+  color: #fff; font-weight: bold; letter-spacing: .02em;
+  flex: 0 0 auto;
+}
+.titlebar .mark { font-size: 12px; }
+.titlebar .spacer { flex: 1; }
+.titlebar .btns { display: flex; gap: 2px; }
+.titlebar .btn {
+  width: 16px; height: 14px; line-height: 11px; text-align: center;
+  font-family: Marlett, monospace; font-size: 9px; color: #000;
+  cursor: default;
+}
+
+/* -- menu / toolbar ----------------------------------------------------- */
+.menubar { display: flex; gap: 0; padding: 1px 2px; flex: 0 0 auto; }
+.menubar span { padding: 2px 7px; cursor: default; }
+.menubar span:hover { background: var(--select); color: #fff; }
+.menubar u { text-decoration: underline; }
+
+.toolbar {
+  display: flex; align-items: center; gap: 4px; padding: 3px; flex-wrap: wrap;
+  flex: 0 0 auto;
+}
+.sep { width: 2px; height: 20px; margin: 0 3px;
+       border-left: 1px solid var(--shadow); border-right: 1px solid var(--light); }
+
+button {
+  font: inherit; padding: 3px 10px; cursor: pointer; min-width: 26px;
+  background: var(--face); color: var(--ink);
+  border: 2px solid;
+  border-color: var(--light) var(--dark) var(--dark) var(--light);
+  box-shadow: inset 1px 1px 0 var(--face), inset -1px -1px 0 var(--shadow);
+}
+button:active:not(:disabled), button.on {
+  border-color: var(--dark) var(--light) var(--light) var(--dark);
+  box-shadow: inset 1px 1px 0 var(--shadow), inset -1px -1px 0 var(--face);
+  padding: 4px 9px 2px 11px;
+}
+button:disabled { color: var(--shadow); text-shadow: 1px 1px 0 var(--light); cursor: default; }
+button:focus-visible { outline: 1px dotted #000; outline-offset: -5px; }
+
+input[type=text], select, textarea {
+  font: inherit; padding: 2px 3px; background: var(--window); color: var(--ink);
+  border: 2px solid;
+  border-color: var(--shadow) var(--light) var(--light) var(--shadow);
+  box-shadow: inset 1px 1px 0 var(--dark);
+}
+input[type=text]:focus, textarea:focus { outline: none; }
+label.chk { display: inline-flex; align-items: center; gap: 4px; cursor: default; }
+
+fieldset { margin: 0; padding: 6px 8px 8px;
+  border: 1px solid var(--shadow); border-right-color: var(--light);
+  border-bottom-color: var(--light); }
+legend { padding: 0 3px; }
+
+/* -- layout ------------------------------------------------------------- */
+.body { flex: 1 1 auto; display: flex; gap: 3px; min-height: 0; padding: 0 1px 1px; }
+.left { width: 232px; flex: 0 0 auto; display: flex; flex-direction: column; gap: 3px; }
+.right { flex: 1 1 auto; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+
+.pane { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+/* Pane sizing lives here, not in style="" attributes: the CSP that keeps
+   other pages out of this server also blocks inline styles. */
+.pane-targets  { flex: 0 0 152px; }
+.pane-identity { flex: 0 0 128px; }
+.pane-log      { flex: 1 1 auto; }
+.pane-grid     { flex: 1 1 60%; }
+.pane-detail   { flex: 1 1 40%; }
+.footbar { padding: 6px; border-top: 1px solid var(--shadow); background: var(--face); }
+.dlglist { margin: 8px 0; }
+.spaced  { margin: 4px 0; }
+.pane > .caption {
+  background: var(--face); padding: 2px 4px; font-weight: bold;
+  border-bottom: 1px solid var(--shadow); flex: 0 0 auto;
+}
+.scroll { overflow: auto; flex: 1 1 auto; background: var(--window); }
+
+/* -- tabs --------------------------------------------------------------- */
+.tabs { display: flex; gap: 2px; padding: 3px 3px 0; flex: 0 0 auto; }
+.tab {
+  padding: 3px 10px; background: var(--face); cursor: default;
+  border: 2px solid; border-bottom: none;
+  border-color: var(--light) var(--dark) transparent var(--light);
+  border-radius: 3px 3px 0 0; position: relative; top: 1px;
+}
+.tab.on { font-weight: bold; padding: 4px 12px 4px; top: 0; z-index: 2; }
+.tab .count { color: var(--dim); font-weight: normal; }
+
+/* -- data grid (Wireshark) ---------------------------------------------- */
+table.grid { border-collapse: collapse; width: 100%;
+  font: 11px "Consolas", "DejaVu Sans Mono", Menlo, monospace; }
+table.grid th {
+  position: sticky; top: 0; z-index: 1; text-align: left; padding: 3px 5px;
+  background: var(--face); font-family: Tahoma, sans-serif; font-size: 11px;
+  border: 2px solid; border-color: var(--light) var(--shadow) var(--shadow) var(--light);
+  white-space: nowrap; cursor: pointer; user-select: none;
+}
+table.grid th .arrow { color: var(--dim); }
+table.grid td { padding: 2px 5px; border-bottom: 1px solid #e8e8e8;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 0; }
+table.grid tr { cursor: default; }
+table.grid tr.confirmed { background: var(--row-confirmed); }
+table.grid tr.probable  { background: var(--row-probable); }
+table.grid tr.possible  { background: var(--row-possible); }
+table.grid tr.weak      { background: var(--row-weak); }
+table.grid tr.subject   { background: var(--row-subject); }
+table.grid tr.other     { background: var(--row-other); }
+table.grid tr.sel, table.grid tr.sel td { background: var(--select) !important; color: #fff; }
+table.grid tr.sel a { color: #cfe3ff; }
+td.num { text-align: right; font-variant-numeric: tabular-nums; }
+td.mono { font-family: inherit; }
+a { color: #0000c0; }
+a:visited { color: #601080; }
+
+/* -- detail tree -------------------------------------------------------- */
+.tree { font: 11px "Consolas", "DejaVu Sans Mono", Menlo, monospace; padding: 4px 6px; }
+.tree .node { cursor: default; white-space: pre-wrap; word-break: break-all; }
+.tree .k { color: #000080; }
+.tree .v { color: #101010; }
+.tree .grp { font-weight: bold; margin-top: 4px; }
+.tree .warn { color: #a00000; }
+.tree .good { color: #006000; }
+
+/* -- log ---------------------------------------------------------------- */
+.log { font: 11px "Consolas", monospace; padding: 3px 5px; }
+.log div { white-space: pre-wrap; }
+.log .ok   { color: #006000; }
+.log .fail { color: #a00000; }
+.log .warn { color: #8a6d00; }
+.log .start{ color: var(--dim); }
+
+/* -- list --------------------------------------------------------------- */
+ul.list { list-style: none; margin: 0; padding: 2px; }
+ul.list li { padding: 2px 4px; cursor: default; display: flex; gap: 5px;
+  align-items: baseline; }
+ul.list li.sel { background: var(--select); color: #fff; }
+ul.list li .type { color: var(--dim); font-size: 10px; }
+ul.list li.sel .type { color: #b8c8ff; }
+.badge { font-size: 10px; padding: 0 3px; border: 1px solid var(--shadow);
+  background: var(--face); color: #000; }
+
+/* -- status bar --------------------------------------------------------- */
+.statusbar { display: flex; gap: 3px; padding: 2px; flex: 0 0 auto; }
+.statusbar .cell { padding: 2px 6px; white-space: nowrap; }
+.statusbar .cell.grow { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; }
+.progress { width: 150px; height: 14px; padding: 2px; }
+.progress .bar { height: 100%; background: var(--title);
+  background-image: repeating-linear-gradient(90deg,
+    var(--title) 0 8px, transparent 8px 10px);
+  width: 0; transition: width .2s; }
+
+/* -- dialog ------------------------------------------------------------- */
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,.35);
+  display: none; align-items: center; justify-content: center; z-index: 50; }
+.modal.show { display: flex; }
+.dialog { width: min(560px, 92vw); padding: 3px; }
+.dialog .titlebar { margin: -1px -1px 6px; }
+.dialog .content { padding: 8px 10px 10px; }
+.dialog .row { display: flex; gap: 6px; justify-content: flex-end; margin-top: 10px; }
+
+.hint { color: var(--dim); }
+.nowrap { white-space: nowrap; }
+.empty { padding: 10px; color: var(--dim); }
