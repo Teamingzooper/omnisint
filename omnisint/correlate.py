@@ -248,12 +248,64 @@ def _is_handle_echo(name: str, handles: set[str],
     return False
 
 
+def _name_tokens(name: str) -> list[str]:
+    return [t for t in _norm_name(name).split() if t]
+
+
+def name_relation(a: str, b: str) -> str:
+    """How two names relate: 'same', 'compatible', or 'conflict'.
+
+    Platforms expose wildly different amounts of a name — a Duolingo profile
+    may carry only "Michael" where GitHub carries "Michael Silverstein".
+    Those are the same name at different resolutions, not two people, and
+    calling that a conflict is both wrong and alarming.
+
+    A genuine conflict is a name that *contradicts* the other: same surname,
+    different given name ("Linus Torvalds" vs "Patricia Torvalds") is the
+    case this whole module exists to catch, so it stays a conflict.
+    """
+    ta, tb = _name_tokens(a), _name_tokens(b)
+    if not ta or not tb:
+        return "conflict"
+    sa, sb = set(ta), set(tb)
+    if sa == sb:
+        return "same"
+    # One name is the other with detail dropped: "Michael" ⊂ "Michael
+    # Silverstein", "Torvalds" ⊂ "Linus Torvalds".
+    if sa <= sb or sb <= sa:
+        return "compatible"
+
+    # Initials count as the token they abbreviate, so "M Silverstein" and
+    # "Michael Silverstein" agree.
+    def expand(short, long):
+        out = set()
+        for t in short:
+            if len(t) == 1:
+                match = next((x for x in long if x.startswith(t)), None)
+                out.add(match or t)
+            else:
+                out.add(t)
+        return out
+
+    if expand(sa, sb) <= sb or expand(sb, sa) <= sa:
+        return "compatible"
+    return "conflict"
+
+
 def _looks_like_page_title(raw: str, platform: str) -> bool:
     """Scrapers sometimes hand back the page <title> instead of a name."""
     if "|" in raw or "·" in raw or " - " in raw:
         return True
     flat = _norm_name(raw).replace(" ", "")
     return flat == _norm_name(platform).replace(" ", "")
+
+
+def _account_name(acct) -> str:
+    """The name an account's own profile carried, if any."""
+    for k, v in acct.metadata.items():
+        if k.lower() in _IDENTITY_FIELDS and str(v).strip():
+            return str(v).strip()
+    return ""
 
 
 def cluster_personas(profile: Profile) -> None:
@@ -288,6 +340,35 @@ def cluster_personas(profile: Profile) -> None:
         for acct in profile.accounts.values():
             acct.attribution = 0.5
         return
+
+    # Fold less-specific names into fuller ones before deciding anything.
+    # "Michael" and "Michael Silverstein" are one identity seen at two
+    # resolutions; treating them as rivals splits the evidence and then
+    # reports the split as a conflict.
+    #
+    # Only fold when it is unambiguous: with both "Michael Silverstein" and
+    # "Michael Braun" present, a bare "Michael" belongs to neither in
+    # particular and is left alone.
+    partial_of: dict[str, str] = {}     # narrow name -> the fuller name
+    ambiguous: set[str] = set()
+    by_detail = sorted(named, key=lambda n: (-len(_name_tokens(n)), -len(n)))
+    for narrow in by_detail:
+        hosts = [full for full in by_detail
+                 if full != narrow
+                 and len(_name_tokens(full)) > len(_name_tokens(narrow))
+                 and name_relation(display[narrow], display[full]) == "compatible"]
+        # Only fold into a name that is not itself folding into something.
+        hosts = [h for h in hosts if h not in partial_of]
+        if len(hosts) == 1:
+            partial_of[narrow] = hosts[0]
+        elif len(hosts) > 1:
+            ambiguous.add(narrow)
+
+    variants: dict[str, list[str]] = {}
+    for narrow, full in partial_of.items():
+        named[full].extend(named[narrow])
+        variants.setdefault(full, []).append(display[narrow])
+        del named[narrow]
 
     # The primary persona is the name corroborated across the most platforms;
     # ties break toward the one seen on higher-confidence accounts.
@@ -354,8 +435,13 @@ def cluster_personas(profile: Profile) -> None:
         else:
             note = ("different name on the same handle — probably an "
                     "unrelated person, verify before linking")
+        merged = sorted(variants.get(norm, []))
+        if merged:
+            note += (f" Also seen with less detail as "
+                     f"{', '.join(repr(m) for m in merged)}.")
         profile.personas.append({
             "name": display[norm],
+            "variants": merged,
             "platforms": platforms,
             "account_count": len(accts),
             "primary": is_primary,
@@ -374,15 +460,34 @@ def cluster_personas(profile: Profile) -> None:
                 acct.attribution = 0.5
                 acct.persona_note = "competing identity, unresolved"
             elif is_primary:
-                # Corroboration across platforms strengthens attribution.
-                acct.attribution = min(0.95, 0.55 + 0.1 * len(platforms))
-                acct.persona_note = "matches primary identity"
+                # An account that only carried part of the name is consistent
+                # with the identity but does not single it out — thousands of
+                # people are "Michael". Say that rather than implying proof.
+                own = _account_name(acct)
+                if own and name_relation(own, display[norm]) == "compatible":
+                    acct.attribution = 0.6
+                    acct.persona_note = (
+                        f"consistent with primary identity — the profile only "
+                        f"gives '{own}', which is less specific than "
+                        f"'{display[norm]}'")
+                else:
+                    # Corroboration across platforms strengthens attribution.
+                    acct.attribution = min(0.95, 0.55 + 0.1 * len(platforms))
+                    acct.persona_note = "matches primary identity"
             else:
                 acct.attribution = 0.2
                 acct.persona_note = (
                     f"name '{display[norm]}' conflicts with primary identity "
                     f"'{display[primary_norm]}'"
                 )
+
+    # Names too generic to place: consistent with more than one identity here.
+    for norm in ambiguous:
+        for acct in named.get(norm, []):
+            acct.attribution = 0.5
+            acct.persona_note = (
+                f"'{display[norm]}' is consistent with more than one identity "
+                "in this report — too generic to place")
 
     for acct in profile.accounts.values():
         if acct.persona is None and not acct.corroborated:

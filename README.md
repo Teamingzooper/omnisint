@@ -304,6 +304,33 @@ guessing from corroboration counts. `expand` additionally turns a name into
 the handles people actually pick (`alexrivera`, `a.rivera`,
 `arivera`, …) and searches those — clearly labelled as guesses.
 
+### A shorter name is not a different person
+
+Platforms expose wildly different amounts of a name — Duolingo may carry only
+"Michael" where GitHub carries "Michael Silverstein". Those are one name at
+two resolutions, so the shorter one **folds into** the fuller one and is
+listed as a variant, rather than being reported as a rival identity.
+
+It is still not treated as proof. An account that only says "Michael" is
+scored as *consistent with* the identity, not as confirming it — thousands of
+people are Michael:
+
+```
+Duolingo   93% exists · 60% same
+  identity: Michael Silverstein (consistent with primary identity — the
+  profile only gives 'Michael', which is less specific)
+```
+
+Three rules keep this from over-merging:
+
+- **Same surname, different given name is still a conflict.** "Patricia
+  Torvalds" against "Linus Torvalds" is exactly what this module exists to
+  catch, and it remains flagged.
+- **Ambiguous partials fold into nothing.** With both "Michael Silverstein"
+  and "Michael Braun" present, a bare "Michael" belongs to neither and is
+  marked *too generic to place*.
+- **Initials count.** "M Silverstein" and "Michael Silverstein" agree.
+
 Primary identity is chosen from the strongest evidence available, in order:
 
 1. an account matched a **secondary term** you supplied

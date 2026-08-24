@@ -348,13 +348,16 @@ function viewPersonas() {
   const rows = (state.profile.personas || []).map(p => ({
     ...p, role: p.primary ? "PRIMARY — your subject"
         : (state.profile.personas.some(x => x.primary) ? "likely someone else" : "unresolved"),
-    where: p.platforms.join(", "), n: p.platforms.length }));
+    where: p.platforms.join(", "), n: p.platforms.length,
+    shown: p.name + ((p.variants || []).length ? `  (also: ${p.variants.join(", ")})` : "") }));
   grid([
-    { key: "name", label: "Identity", width: "180px" },
+    { key: "shown", label: "Identity", width: "230px" },
     { key: "role", label: "Assessment", width: "170px" },
     { key: "n", label: "#", width: "36px", cls: "num" },
     { key: "where", label: "Platforms" },
-  ], rows, r => detail(`Detail — ${r.name}`, [], [{ text: r.note, tone: r.primary ? "good" : "warn" }]),
+  ], rows, r => detail(`Detail — ${r.name}`,
+      (r.variants || []).map(v => ["also seen as", v]),
+      [{ text: r.note, tone: r.primary ? "good" : "warn" }]),
     r => (r.primary ? "subject" : (r.role === "unresolved" ? "possible" : "other")));
 }
 
@@ -484,7 +487,9 @@ function render() {
     const li = el("li");
     li.appendChild(el("span", "badge", x.primary ? "★" : "?"));
     li.appendChild(document.createTextNode(" " + x.name));
-    li.appendChild(el("span", "type", `${x.platforms.length}`));
+    li.appendChild(el("span", "type",
+      `${x.platforms.length}` + ((x.variants || []).length ? ` +${x.variants.length}` : "")));
+    if ((x.variants || []).length) li.title = "also seen as " + x.variants.join(", ");
     per.appendChild(li);
   });
 

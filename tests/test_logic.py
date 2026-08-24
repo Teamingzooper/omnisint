@@ -262,6 +262,63 @@ check("unknown setting is reported", "Unknown setting" in _buf.getvalue())
 _con._set("timeout", "abc")
 check("non-numeric setting is reported", "not a valid int" in _buf.getvalue())
 
+# --- a shorter name is not a different person -----------------------------
+print("\nname compatibility")
+from omnisint.correlate import name_relation as _rel
+
+for _a, _b, _want in [
+    ("Michael", "Michael Silverstein", "compatible"),
+    ("Michael Silverstein", "Michael", "compatible"),
+    ("Torvalds", "Linus Torvalds", "compatible"),
+    ("M Silverstein", "Michael Silverstein", "compatible"),
+    ("Michael Silverstein", "Silverstein Michael", "same"),
+    ("Linus Torvalds", "Patricia Torvalds", "conflict"),
+    ("Michael Braun", "Michael Silverstein", "conflict"),
+    ("Alice Smith", "Bob Jones", "conflict"),
+]:
+    check(f"{_a!r} vs {_b!r} -> {_want}", _rel(_a, _b) == _want)
+
+
+def _named(*pairs):
+    pr = Profile(seeds=[Identifier.parse("handle")])
+    merge_evidence(pr, "handle", [
+        Evidence("maigret", plat, f"https://{plat.lower()}.example/handle",
+                 Status.FOUND, 0.7, {"fullname": name})
+        for plat, name in pairs])
+    score_accounts(pr); harvest_identity(pr); apply_corroboration(pr)
+    cluster_personas(pr)
+    return pr, {a.platform: a for a in pr.accounts.values()}
+
+
+# The reported bug: a first-name-only profile read as a different person.
+_pr, _acc = _named(("Pinterest", "Michael Silverstein"),
+                   ("Github", "Michael Silverstein"),
+                   ("Duolingo", "Michael"))
+check("a partial name folds into the fuller one", len(_pr.personas) == 1)
+check("the variant is recorded", _pr.personas[0]["variants"] == ["Michael"])
+check("a partial name is not called a conflict",
+      "conflict" not in (_acc["Duolingo"].persona_note or ""))
+check("nor flagged as a different person",
+      _acc["Duolingo"].attribution_level != "likely different person")
+check("but it is not treated as proof either",
+      _acc["Duolingo"].attribution < _acc["Github"].attribution)
+check("and it explains why", "less specific" in _acc["Duolingo"].persona_note)
+
+# The case this module exists for must still be caught.
+_pr2, _acc2 = _named(("GitHub", "Linus Torvalds"), ("Academia", "Linus Torvalds"),
+                     ("Medium", "Patricia Torvalds"))
+check("a different given name is still a conflict",
+      _acc2["Medium"].attribution_level == "likely different person")
+
+# A bare given name shared by two identities belongs to neither.
+_pr3, _acc3 = _named(("GitHub", "Michael Silverstein"), ("GitLab", "Michael Silverstein"),
+                     ("Behance", "Michael Braun"), ("Duolingo", "Michael"))
+check("an ambiguous partial is left unplaced",
+      _acc3["Duolingo"].attribution_level == "unknown")
+check("and says it is too generic", "too generic" in _acc3["Duolingo"].persona_note)
+check("while the real conflict is still flagged",
+      _acc3["Behance"].attribution_level == "likely different person")
+
 # --- stacking accounts into one identity ----------------------------------
 print("\nconfirmed identity (pins)")
 from omnisint.correlate import apply_pins as _apply_pins

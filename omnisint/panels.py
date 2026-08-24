@@ -147,7 +147,10 @@ def personas(profile: Profile) -> Panel:
             tag = "[red]likely someone else[/red]"
         else:
             tag = "[yellow]unresolved[/yellow]"
-        t.add_row(p["name"], tag, ", ".join(p["platforms"]))
+        name = p["name"]
+        if p.get("variants"):
+            name += f"\n[dim]also: {', '.join(p['variants'])}[/dim]"
+        t.add_row(name, tag, ", ".join(p["platforms"]))
     sub = ("[dim]a shared username is not a shared identity[/dim]"
            if any_primary else
            "[yellow]no name is better corroborated than the others — "
