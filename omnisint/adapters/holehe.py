@@ -17,6 +17,8 @@ class HoleheAdapter(Adapter):
     binary = "holehe"
     accepts = (IdType.EMAIL,)
     base_weight = 0.72
+    install = "pip install holehe"
+    homepage = "https://github.com/megadose/holehe"
     description = "email-to-site registration checks"
 
     def run(self, ident, workdir) -> AdapterResult:

@@ -32,6 +32,8 @@ class PhoneAdapter(Adapter):
     binary = None
     accepts = (IdType.PHONE,)
     base_weight = 0.0   # produces context, not accounts
+    install = "pip install phonenumbers"
+    homepage = "https://github.com/daviddrysdale/python-phonenumbers"
     description = "offline number parsing: country, carrier, line type"
 
     @classmethod
@@ -113,6 +115,9 @@ class ToutatisAdapter(Adapter):
     accepts = (IdType.USERNAME,)
     base_weight = 0.85
     max_seconds = 120
+    install = "pip install toutatis"
+    install_note = "then: export TOUTATIS_SESSION_ID=<your Instagram sessionid cookie>"
+    homepage = "https://github.com/megadose/toutatis"
     description = "Instagram detail incl. obfuscated email/phone (needs session)"
 
     @classmethod

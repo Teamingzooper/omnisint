@@ -269,9 +269,99 @@ for exactly this reason.
 git clone https://github.com/Teamingzooper/omnisint
 cd omnisint
 pip install -e .
-pip install maigret holehe user-scanner   # backends
-brew install sherlock
-export HIBP_API_KEY=…                     # optional
+```
+
+That gives you `omnisint` (and the shorter `omni`) plus three built-in
+backends — Gravatar, WHOIS/DNS and phone parsing. Everything else is an
+external tool you install separately.
+
+## Installing the backends
+
+Omnisint drives other people's tools rather than reimplementing them.
+**Every backend is optional**: missing ones are skipped with a note, never a
+crash. Run `omnisint tools` at any time to see what is present and get the
+exact command for anything that is not.
+
+### Everything at once
+
+```bash
+pip install maigret sherlock-project holehe user-scanner phonenumbers toutatis onionsearch
+```
+
+### One at a time
+
+| Backend | Install | Also needs |
+|---|---|---|
+| [maigret](https://github.com/soxoj/maigret) | `pip install maigret` | — |
+| [sherlock](https://github.com/sherlock-project/sherlock) | `pip install sherlock-project` | — |
+| [holehe](https://github.com/megadose/holehe) | `pip install holehe` | — |
+| [user-scanner](https://github.com/kaifcodec/user-scanner) | `pip install user-scanner` | — |
+| [phonenumbers](https://github.com/daviddrysdale/python-phonenumbers) | `pip install phonenumbers` | — |
+| [toutatis](https://github.com/megadose/toutatis) | `pip install toutatis` | `export TOUTATIS_SESSION_ID=…` |
+| [OnionSearch](https://github.com/megadose/OnionSearch) | `pip install onionsearch` | Tor, and the `--darkweb` flag |
+| [Have I Been Pwned](https://haveibeenpwned.com/API/v3) | built in | `export HIBP_API_KEY=…` (paid) |
+
+> **`pip install sherlock` installs the wrong package.** There is an
+> unrelated project squatting that name on PyPI. The one you want is
+> **`sherlock-project`**. On macOS `brew install sherlock` also works.
+
+### The ones with extra requirements
+
+**toutatis** reads Instagram profile detail — including the obfuscated
+recovery email and phone — which needs a logged-in session:
+
+```bash
+export TOUTATIS_SESSION_ID="<your Instagram sessionid cookie>"
+```
+
+This uses *your* Instagram session against Instagram's terms, so it stays
+inert until you set that yourself. It is never enabled by default.
+
+**OnionSearch** searches hidden-service indexes and needs a local Tor proxy:
+
+```bash
+pip install onionsearch
+brew install tor && brew services start tor    # or: sudo apt install tor
+omnisint scan jdoe --darkweb
+```
+
+It is opt-in twice over — excluded from the default set *and* gated behind
+`--darkweb` — because it is slow and scraping onion indexes should be a
+deliberate act.
+
+**Have I Been Pwned** needs a paid API key from
+[haveibeenpwned.com/API/Key](https://haveibeenpwned.com/API/Key):
+
+```bash
+export HIBP_API_KEY="…"
+```
+
+### Checking what you have
+
+```bash
+omnisint tools
+```
+
+```
+2 backend(s) not ready. Missing backends are skipped, never fatal.
+
+  toutatis — Instagram detail incl. obfuscated email/phone
+      pip install toutatis
+      then: export TOUTATIS_SESSION_ID=<your Instagram sessionid cookie>
+      https://github.com/megadose/toutatis
+```
+
+### A note on trusting these
+
+Each of these runs on your machine with your network access, and several
+have hundreds of transitive dependencies. Every link above goes to the
+upstream project so you can read what you are installing. Consider a
+virtualenv:
+
+```bash
+python3 -m venv ~/.venvs/omnisint
+source ~/.venvs/omnisint/bin/activate
+pip install -e . maigret sherlock-project holehe user-scanner phonenumbers
 ```
 
 ## Tests

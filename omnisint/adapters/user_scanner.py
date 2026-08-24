@@ -15,6 +15,8 @@ class UserScannerAdapter(Adapter):
     binary = "user-scanner"
     accepts = (IdType.USERNAME, IdType.EMAIL)
     base_weight = 0.68
+    install = "pip install user-scanner"
+    homepage = "https://github.com/kaifcodec/user-scanner"
     description = "400+ username/email vectors with profile metadata"
 
     def run(self, ident, workdir) -> AdapterResult:
@@ -113,6 +115,8 @@ class HudsonRockAdapter(Adapter):
     # This should be one API lookup; if it starts a full sweep instead, cut
     # it loose rather than letting it hold up the whole scan.
     max_seconds = 90
+    install = "pip install user-scanner"
+    homepage = "https://github.com/kaifcodec/user-scanner"
     description = "infostealer breach exposure (Hudson Rock)"
 
     def run(self, ident, workdir) -> AdapterResult:

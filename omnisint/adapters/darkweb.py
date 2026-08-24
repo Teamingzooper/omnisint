@@ -27,6 +27,9 @@ class DarkWebAdapter(Adapter):
     max_seconds = 600
     #: Never runs unless explicitly requested — see module docstring.
     opt_in = True
+    install = "pip install onionsearch"
+    install_note = "also needs Tor running: brew install tor && brew services start tor"
+    homepage = "https://github.com/megadose/OnionSearch"
     description = "hidden-service index search (opt-in, needs Tor + --darkweb)"
 
     @classmethod

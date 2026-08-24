@@ -27,6 +27,8 @@ class MaigretAdapter(Adapter):
     binary = "maigret"
     accepts = (IdType.USERNAME,)
     base_weight = 0.7
+    install = "pip install maigret"
+    homepage = "https://github.com/soxoj/maigret"
     description = "3000+ site sweep with profile-data extraction"
 
     def run(self, ident, workdir) -> AdapterResult:

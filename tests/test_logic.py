@@ -142,6 +142,47 @@ for line, want_p, want_s in [
     got_p, got_s = _Con.parse_line(line)
     check(f"{line[:38]!r}…", (got_p, got_s) == (want_p, want_s))
 
+# --- flags are recognised anywhere on an input line ------------------------
+print("\ninline flags")
+for line, want_flags, want_unknown, want_primary, want_secondary in [
+    ("alex@example.com -v", ["verbose"], [], ["alex@example.com"], []),
+    ("jdoe -q", ["quick"], [], ["jdoe"], []),
+    ("alex rivera, jdoe -d; acme corp", ["deep"], [],
+     ["alex rivera", "jdoe"], ["acme corp"]),
+    ("jdoe --pivot 2 --case OPS-9", ["pivot", "case"], [], ["jdoe"], []),
+    ("jdoe --top-sites=80", ["top-sites"], [], ["jdoe"], []),
+    ("jdoe -x", [], ["-x"], ["jdoe"], []),
+    ("+14155550100 -v", ["verbose"], [], ["+14155550100"], []),
+    ("jdoe", [], [], ["jdoe"], []),
+]:
+    clean, flags, unknown = _Con.extract_flags(line)
+    pri, sec = _Con.parse_line(clean)
+    check(f"{line!r}", ([f[0] for f in flags], unknown, pri, sec)
+          == (want_flags, want_unknown, want_primary, want_secondary))
+
+# A flag must never be mistaken for something to search for.
+_, _, unk = _Con.extract_flags("jdoe -v")
+check("a flag is never classified as a username",
+      "-v" not in _Con.parse_line(_Con.extract_flags("jdoe -v")[0])[0])
+# Separators glued to a flag must survive, or the secondary half is lost.
+check("separator attached to a flag survives",
+      _Con.parse_line(_Con.extract_flags("jdoe -q; work")[0]) == (["jdoe"], ["work"]))
+check("separator attached to a flag value survives",
+      _Con.parse_line(_Con.extract_flags("jdoe --pivot 2, mjs")[0])
+      == (["jdoe", "mjs"], []))
+
+# --- every backend documents how to install it -----------------------------
+print("\nbackend install metadata")
+from omnisint.registry import adapter_status as _status
+for _row in _status():
+    check(f"{_row['name']} has an install command", bool(_row["install"]))
+check("sherlock points at the right PyPI package",
+      any(r["name"] == "sherlock" and r["install"] == "pip install sherlock-project"
+          for r in _status()))
+check("credentialed backends say what else is needed",
+      all(r["install_note"] for r in _status()
+          if r["name"] in ("toutatis", "hibp", "darkweb")))
+
 # --- dotted handles are not domains ---------------------------------------
 print("\ndomain vs dotted handle")
 for value, want in [("alex.rivera", "username"), ("john.doe", "username"),

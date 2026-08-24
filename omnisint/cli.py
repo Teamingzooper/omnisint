@@ -136,30 +136,53 @@ def _console(quiet: bool = False):
 
 
 def cmd_tools(console) -> int:
-    from rich.table import Table
     from rich import box
+    from rich.table import Table
 
-    t = Table(box=box.SIMPLE_HEAVY, header_style="bold", title="Omnisint backends")
-    for col in ("Adapter", "Status", "Accepts", "Trust", "What it does"):
-        t.add_column(col, overflow="fold")
-    for row in adapter_status():
-        status = ("[green]installed[/green]" if row["available"]
-                  else "[red]missing[/red]")
-        t.add_row(
-            row["name"], status, ", ".join(row["accepts"]),
-            f"{row['weight']:.2f}" if row["weight"] else "—",
-            row["description"],
-        )
+    rows = adapter_status()
+    t = Table(box=box.SIMPLE_HEAVY, header_style="bold",
+              title="Omnisint backends", expand=True)
+    t.add_column("Backend", no_wrap=True)
+    t.add_column("Status", no_wrap=True)
+    t.add_column("Accepts", overflow="fold")
+    t.add_column("Trust", justify="right", no_wrap=True)
+    t.add_column("What it does", overflow="fold", ratio=3)
+    for row in rows:
+        if row["available"]:
+            status = "[green]ready[/green]"
+        elif row["install"] == "built in":
+            status = "[yellow]needs key[/yellow]"
+        else:
+            status = "[red]missing[/red]"
+        name = row["name"] + (" [dim](opt-in)[/dim]" if row["opt_in"] else "")
+        t.add_row(name, status, ", ".join(row["accepts"]),
+                  f"{row['weight']:.2f}" if row["weight"] else "—",
+                  row["description"])
     console.print(t)
 
-    missing = [r["name"] for r in adapter_status() if not r["available"]]
-    if missing:
-        console.print(
-            "\n[dim]Missing backends are skipped, not fatal. Install hints:[/dim]\n"
-            "  [bold]pip install maigret holehe user-scanner[/bold]\n"
-            "  [bold]brew install sherlock[/bold]   (or pip install sherlock-project)\n"
-            "  [bold]export HIBP_API_KEY=…[/bold]   for breach exposure\n"
-        )
+    missing = [r for r in rows if not r["available"]]
+    if not missing:
+        console.print("\n[green]Every backend is installed.[/green]\n")
+        return 0
+
+    console.print(f"\n[bold]{len(missing)} backend(s) not ready.[/bold] "
+                  "[dim]Missing backends are skipped, never fatal.[/dim]\n")
+    for row in missing:
+        console.print(f"  [bold]{row['name']}[/bold] [dim]— {row['description']}[/dim]")
+        if row["install"] and row["install"] != "built in":
+            console.print(f"      [cyan]{row['install']}[/cyan]")
+        if row["install_note"]:
+            console.print(f"      [dim]{row['install_note']}[/dim]")
+        if row["homepage"]:
+            console.print(f"      [dim]{row['homepage']}[/dim]")
+        console.print()
+
+    installable = [r["install"] for r in missing
+                   if r["install"] and r["install"] != "built in"]
+    if installable:
+        pkgs = " ".join(sorted({c.split()[-1] for c in installable}))
+        console.print("[bold]Install them all:[/bold]")
+        console.print(f"  [cyan]pip install {pkgs}[/cyan]\n")
     return 0
 
 

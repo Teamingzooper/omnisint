@@ -17,6 +17,10 @@ class SherlockAdapter(Adapter):
     # Deliberately low: Sherlock's status-code heuristics produce real
     # false positives (Reddit will "match" almost any string).
     base_weight = 0.45
+    # NB: the PyPI name is `sherlock-project`. `pip install sherlock`
+    # installs an unrelated package and will not work.
+    install = "pip install sherlock-project"
+    homepage = "https://github.com/sherlock-project/sherlock"
     description = "400+ site username sweep"
 
     def run(self, ident, workdir) -> AdapterResult:

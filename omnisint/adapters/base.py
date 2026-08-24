@@ -34,6 +34,12 @@ class Adapter:
     max_seconds: int | None = None
     #: Excluded from the default set; must be asked for by name or by flag.
     opt_in: bool = False
+    #: Exact command that installs this backend.
+    install: str | None = None
+    #: Anything else needed after installing (credentials, a daemon, a key).
+    install_note: str | None = None
+    #: Upstream project, so users can audit what they are installing.
+    homepage: str | None = None
     description: str = ""
 
     def __init__(self, opts: "ScanOptions"):

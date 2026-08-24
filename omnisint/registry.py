@@ -53,6 +53,9 @@ def adapter_status() -> list[dict]:
             "accepts": [t.value for t in cls.accepts],
             "weight": cls.base_weight,
             "opt_in": cls.opt_in,
+            "install": cls.install,
+            "install_note": cls.install_note,
+            "homepage": cls.homepage,
             "description": cls.description,
         }
         for cls in ALL_ADAPTERS

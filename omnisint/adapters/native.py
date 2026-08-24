@@ -35,6 +35,7 @@ class GravatarAdapter(Adapter):
     binary = None
     accepts = (IdType.EMAIL,)
     base_weight = 0.9
+    install = "built in"
     description = "Gravatar public profile by email hash"
 
     def run(self, ident, workdir) -> AdapterResult:
@@ -115,6 +116,8 @@ class InfrastructureAdapter(Adapter):
     binary = None
     accepts = (IdType.EMAIL, IdType.DOMAIN, IdType.URL)
     base_weight = 0.0  # produces context, not accounts
+    install = "built in"
+    install_note = "DNS records need: pip install dnspython (a dependency, normally present)"
     description = "WHOIS, MX and DNS context for a domain"
 
     FREEMAIL = {
@@ -196,6 +199,9 @@ class BreachAdapter(Adapter):
     binary = None
     accepts = (IdType.EMAIL,)
     base_weight = 0.0
+    install = "built in"
+    install_note = "needs a paid key: export HIBP_API_KEY=... (haveibeenpwned.com/API/Key)"
+    homepage = "https://haveibeenpwned.com/API/v3"
     description = "Have I Been Pwned breach exposure (needs HIBP_API_KEY)"
 
     @classmethod

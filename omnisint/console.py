@@ -47,6 +47,15 @@ amount of username matching.
   [cyan]drop <n|all>[/cyan]    remove one identifier, or clear the list
   [cyan]expand[/cyan]          turn loaded names into likely handles to search
 
+[bold]Flags work anywhere on the line[/bold], same as on the command line:
+
+    [cyan]alex@example.com -v[/cyan]        [cyan]jdoe -d; acme corp[/cyan]
+    [cyan]jdoe --pivot 2 --case OPS-9[/cyan]
+
+  toggles: [cyan]-v -q -d -s --nsfw --active --passive --darkweb[/cyan]
+  values : [cyan]--pivot --timeout --workers --top-sites --min-confidence[/cyan]
+           [cyan]--case --proxy --only --exclude --sec[/cyan]
+
 [bold]Depth[/bold]
   [cyan]-q[/cyan] / [cyan]quick[/cyan]      top 50 sites — mainstream platforms, back in seconds
   [cyan]-s[/cyan] / [cyan]standard[/cyan]   top 500 sites per tool (default)
@@ -60,6 +69,25 @@ amount of username matching.
   [cyan]export [dir][/cyan]    write JSON + HTML + Markdown (never automatic)
   [cyan]help[/cyan]  ·  [cyan]quit[/cyan]
 """
+
+# Flags accepted anywhere on an input line, so the CLI's vocabulary works
+# inside the console too. Without this, `alex@example.com -v` classified the
+# `-v` as a username and silently searched for it.
+_TOGGLE_FLAGS = {
+    "-v": "verbose", "--verbose": "verbose",
+    "-q": "quick", "--quick": "quick",
+    "-d": "deep", "--deep": "deep",
+    "-s": "standard", "--standard": "standard",
+    "--nsfw": "nsfw", "--active": "active", "--darkweb": "darkweb",
+    "--passive": "passive",
+}
+_VALUE_FLAGS = {
+    "--pivot": "pivot", "--timeout": "timeout", "--workers": "workers",
+    "--top-sites": "top-sites", "--tool-timeout": "tool-timeout",
+    "--min-confidence": "min-confidence", "--delay": "delay",
+    "--case": "case", "--proxy": "proxy", "--only": "only",
+    "--exclude": "exclude", "--sec": "sec", "--secondary": "sec",
+}
 
 _NAME_WORD = re.compile(r"^[A-Za-z][A-Za-z'\u2019-]{1,}$")
 
@@ -119,6 +147,103 @@ class Console:
             return [" ".join(tokens)]
         return tokens
 
+    @staticmethod
+    def extract_flags(raw: str) -> tuple[str, list[tuple[str, str | None]], list[str]]:
+        """Pull flags out of an input line, wherever they appear.
+
+        Returns the line with flags removed, the flags found, and any
+        unrecognised ones. Splitting on whitespace and rejoining keeps the
+        comma and semicolon structure intact, so `a, b -v; work` still parses
+        as two primaries and one secondary.
+        """
+        tokens = raw.split()
+        kept: list[str] = []
+        found: list[tuple[str, str | None]] = []
+        unknown: list[str] = []
+        i = 0
+        while i < len(tokens):
+            tok = tokens[i]
+            # A flag can butt up against a separator (`jdoe -d; work`). Peel
+            # the punctuation off and put it back, or the semicolon is lost
+            # and the secondary half of the line silently becomes primary.
+            trailer = ""
+            while tok and tok[-1] in ",;":
+                trailer = tok[-1] + trailer
+                tok = tok[:-1]
+            bare, _, inline = tok.partition("=")
+            low = bare.lower()
+
+            if low in _TOGGLE_FLAGS:
+                found.append((_TOGGLE_FLAGS[low], None))
+                if trailer:
+                    kept.append(trailer)
+            elif low in _VALUE_FLAGS:
+                value = inline
+                if not value and i + 1 < len(tokens):
+                    i += 1
+                    value = tokens[i]
+                    # The value can carry the separator too (`--pivot 2, mjs`).
+                    while value and value[-1] in ",;":
+                        trailer = value[-1] + trailer
+                        value = value[:-1]
+                found.append((_VALUE_FLAGS[low], (value or "").rstrip(",;") or None))
+                if trailer:
+                    kept.append(trailer)
+            elif (len(tok) > 1 and tok.startswith("-")
+                  and not tok[1].isdigit()):
+                # Looks like a flag but is not one. Refusing it beats
+                # searching for "-x" as though it were a handle.
+                unknown.append(tok)
+                if trailer:
+                    kept.append(trailer)
+            else:
+                kept.append(tok + trailer)
+            i += 1
+        return " ".join(kept), found, unknown
+
+    def _apply_flags(self, found: list[tuple[str, str | None]]) -> None:
+        for name, value in found:
+            if name in ("quick", "standard", "deep"):
+                self._preset(name)
+            elif name == "verbose":
+                self.opts.verbose = not self.opts.verbose
+                self.c.print(f"  [green]verbose "
+                             f"{'ON' if self.opts.verbose else 'off'}[/green]")
+            elif name == "nsfw":
+                self.opts.nsfw = True
+                self.c.print("  [green]nsfw sites included[/green]")
+            elif name == "active":
+                self.opts.passive = False
+                self.c.print("  [bold yellow]ACTIVE mode[/bold yellow][dim] — probes "
+                             "may be visible to the subject[/dim]")
+            elif name == "passive":
+                self.opts.passive = True
+                self.c.print("  [green]passive mode[/green]")
+            elif name == "darkweb":
+                self.opts.only = set(self.opts.only) | {"darkweb"}
+                self.c.print("  [green]dark-web search enabled[/green][dim] "
+                             "(needs Tor)[/dim]")
+            elif name == "sec" and value:
+                self._add_secondary(value)
+            elif name == "case" and value:
+                self.auth.case = value
+                self.c.print(f"  [green]case = {value}[/green]")
+            elif name == "pivot" and value:
+                try:
+                    self.opts.pivot_depth = int(value)
+                    self.c.print(f"  [green]pivot depth = {value}[/green]")
+                except ValueError:
+                    self.c.print(f"  [yellow]pivot needs a number, got {value!r}[/yellow]")
+            elif name in ("only", "exclude") and value:
+                target = {t.strip() for t in value.split(",") if t.strip()}
+                setattr(self.opts, name, target)
+                self.c.print(f"  [green]{name} = {', '.join(sorted(target))}[/green]")
+            elif name == "proxy" and value:
+                self.opts.proxy = value
+                self.c.print(f"  [green]proxy = {value}[/green]")
+            elif value:
+                self._set(name, value)
+
     @classmethod
     def parse_line(cls, raw: str) -> tuple[list[str], list[str]]:
         """Split one line into (primary, secondary).
@@ -140,6 +265,13 @@ class Console:
         return cls.split_input(head), secondary
 
     def _classify(self, raw: str) -> None:
+        raw, flags, unknown = self.extract_flags(raw)
+        self._apply_flags(flags)
+        for bad in unknown:
+            self.c.print(f"  [yellow]?[/yellow] {bad}  [dim]→ not a known flag; "
+                         f"ignored (see [/dim][cyan]help[/cyan][dim])[/dim]")
+        if not raw.strip():
+            return
         primary_raw, secondary_raw = self.parse_line(raw)
         added, skipped = [], []
         for piece in primary_raw:
