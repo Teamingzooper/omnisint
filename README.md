@@ -446,14 +446,28 @@ for exactly this reason.
 ## Install
 
 ```bash
+pip install omnisint
+```
+
+or from source:
+
+```bash
 git clone https://github.com/Teamingzooper/omnisint
 cd omnisint
 pip install -e .
 ```
 
-That gives you `omnisint` (and the shorter `omni`) plus three built-in
-backends — Gravatar, WHOIS/DNS and phone parsing. Everything else is an
-external tool you install separately.
+That gives you `omnisint` (and the shorter `omni`), the web UI, and three
+built-in backends — Gravatar, WHOIS/DNS and phone parsing. Everything else is
+an external tool you install separately; a missing one is skipped with a note,
+never a crash.
+
+To pull in the scanning backends at the same time:
+
+```bash
+pip install "omnisint[backends]"     # maigret, sherlock, holehe, user-scanner
+pip install "omnisint[all]"          # the above plus toutatis and OnionSearch
+```
 
 ## Installing the backends
 

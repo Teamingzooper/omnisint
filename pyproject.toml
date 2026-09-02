@@ -1,16 +1,60 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "omnisint"
 version = "1.0.0"
-description = "Omnisint — every OSINT source you have, one correlated profile"
+description = "Every OSINT source you have, one correlated profile — scores whether an account exists and whether it is your subject as separate questions"
+readme = "README.md"
 requires-python = ">=3.10"
-dependencies = ["rich>=13", "dnspython>=2.4"]
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Omnisint contributors" }]
+keywords = [
+    "osint", "osint-tools", "reconnaissance", "username-search", "email-osint",
+    "threat-intelligence", "footprint", "cli", "maigret", "sherlock",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Environment :: Web Environment",
+    "Intended Audience :: Information Technology",
+    "Intended Audience :: System Administrators",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Security",
+    "Topic :: Internet",
+    "Typing :: Typed",
+]
+dependencies = ["rich>=13", "dnspython>=2.4", "phonenumbers>=8"]
 
 [project.optional-dependencies]
-backends = ["maigret>=0.6", "holehe>=1.6", "user-scanner>=1.5", "sherlock-project>=0.15"]
+# The tools Omnisint drives. All optional: a missing backend is skipped with
+# a note, never a crash, so the base install stays small and dependency-light.
+backends = [
+    "maigret>=0.6",
+    "sherlock-project>=0.15",
+    "holehe>=1.6",
+    "user-scanner>=1.5",
+]
+# Backends that need credentials or a daemon before they do anything.
+extras = ["toutatis>=1.3", "onionsearch>=1.3"]
+all = [
+    "maigret>=0.6", "sherlock-project>=0.15", "holehe>=1.6",
+    "user-scanner>=1.5", "toutatis>=1.3", "onionsearch>=1.3",
+]
+
+[project.urls]
+Homepage = "https://github.com/Teamingzooper/omnisint"
+Repository = "https://github.com/Teamingzooper/omnisint"
+Issues = "https://github.com/Teamingzooper/omnisint/issues"
+Changelog = "https://github.com/Teamingzooper/omnisint/commits/main"
 
 [project.scripts]
 omnisint = "omnisint.cli:main"

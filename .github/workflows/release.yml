@@ -1,0 +1,108 @@
+# Publishes to PyPI when a GitHub Release is published.
+#
+# Uses trusted publishing (OIDC), so there is no API token to store or leak.
+# One-time setup on PyPI is required before the first run — see RELEASING.md.
+
+name: Upload Python Package
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # A release is the worst possible time to find out the tests fail, and a
+  # published version cannot be replaced on PyPI — only yanked. Gate on it.
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - run: python -m pip install --upgrade pip .
+      - run: python tests/test_logic.py
+      - run: python tests/test_web.py
+
+  release-build:
+    runs-on: ubuntu-latest
+    needs: [test]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Build release distributions
+        run: |
+          python -m pip install --upgrade pip build twine
+          python -m build
+
+      - name: Check metadata renders on PyPI
+        run: python -m twine check dist/*
+
+      # The web UI is data files, not modules, so it is the thing most likely
+      # to go missing from a wheel without anything failing loudly.
+      - name: Verify the wheel actually contains the web UI
+        run: |
+          python - <<'PY'
+          import glob, sys, zipfile
+          wheel = glob.glob("dist/*.whl")[0]
+          names = zipfile.ZipFile(wheel).namelist()
+          missing = [f for f in ("index.html", "app.js", "app.css")
+                     if f"omnisint/web/static/{f}" not in names]
+          if missing:
+              sys.exit(f"wheel is missing web assets: {missing}")
+          print(f"{wheel}: web assets present")
+          PY
+
+      - name: Verify the tag matches the packaged version
+        if: github.event_name == 'release'
+        run: |
+          python - <<'PY'
+          import glob, os, re, sys
+          tag = os.environ["TAG"].lstrip("v")
+          wheel = os.path.basename(glob.glob("dist/*.whl")[0])
+          version = wheel.split("-")[1]
+          if tag != version:
+              sys.exit(f"release tag {tag!r} does not match package version "
+                       f"{version!r} — bump version in pyproject.toml")
+          print(f"tag {tag} matches package version {version}")
+          PY
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+
+      - name: Upload distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-dists
+          path: dist/
+
+  pypi-publish:
+    runs-on: ubuntu-latest
+    needs:
+      - release-build
+    permissions:
+      # Mandatory for trusted publishing.
+      id-token: write
+
+    environment:
+      name: pypi
+      url: https://pypi.org/p/omnisint
+
+    steps:
+      - name: Retrieve release distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: release-dists
+          path: dist/
+
+      - name: Publish release distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/

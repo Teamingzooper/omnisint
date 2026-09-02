@@ -1,0 +1,5 @@
+include LICENSE README.md
+recursive-include omnisint/web/static *
+recursive-include tests *.py
+include examples/make_sample.py
+prune examples/sample-report.html
