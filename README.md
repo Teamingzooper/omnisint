@@ -1,3 +1,30 @@
+<p align="center">
+  <img src="assets/brand/omnisint-poster-16x9.png"
+       alt="Omnisint — every source, one profile. An eye mark with OSINT tools converging into it."
+       width="100%">
+</p>
+
+# Omnisint
+
+*omniscient + OSINT.* One command that runs every OSINT tool on your machine
+against a name, username, email, phone or domain, then **correlates the
+results into a single profile** instead of leaving you to diff eight terminal
+windows by hand.
+
+**Brand.** The mark is an eye built from the `O` — the all-seeing reading of
+*omniscient*. The wordmark weights **OMNI** solid and `SINT` outlined so the
+seam of the portmanteau stays visible. Cyan reads as instrumentation, magenta
+marks identity and corroboration, amber is caution, red is exposure — used
+consistently in the terminal, the web UI and the HTML report.
+
+Artwork lives in [`assets/brand/`](assets/brand): editable SVG plus 1920×1080,
+3840×2160 and a 1280×720 thumbnail. Every name in it is invented, taken from
+[`examples/make_sample.py`](examples/make_sample.py) — no real person appears
+in the art.
+
+Three wordmark sizes ship so the terminal banner never wraps — full, compact,
+and `◉ OMNISINT`:
+
 ```
  ▄██████▄  ▄▄       ▄▄ ▄▄     ▄▄ ▄▄   ▄███████ ▄▄ ▄▄     ▄▄ ██████████
  ██▀    ▀█ ███▄   ▄███ ███▄   ██ ██   ██▀      ██ ███▄   ██     ██
@@ -7,20 +34,6 @@
 
  every source · one profile
 ```
-
-# Omnisint
-
-*omniscient + OSINT.* One command that runs every OSINT tool on your machine
-against a name, username, email, phone or domain, then **correlates the
-results into a single profile** instead of leaving you to diff eight terminal
-windows by hand.
-
-**Brand:** the mark is an eye built from the `O` — the all-seeing reading of
-*omniscient*. The wordmark weights **OMNI** solid and `SINT` outlined so the
-seam of the portmanteau stays visible. Cyan reads as instrumentation, magenta
-marks identity and corroboration, amber is caution, red is exposure — used
-consistently in the terminal and in the HTML report. Three wordmark sizes ship
-so the banner never wraps: full, compact, and `◉ OMNISINT`.
 
 ## Start here
 
