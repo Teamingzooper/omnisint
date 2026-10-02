@@ -262,6 +262,32 @@ check("unknown setting is reported", "Unknown setting" in _buf.getvalue())
 _con._set("timeout", "abc")
 check("non-numeric setting is reported", "not a valid int" in _buf.getvalue())
 
+# --- no tool may stall the whole scan -------------------------------------
+print("\ntimeout budgets")
+from omnisint.registry import ALL_ADAPTERS as _ALL
+from omnisint.config import apply_preset as _preset
+
+_external = [c for c in _ALL if c.binary is not None or c.name == "spiderfoot"]
+check("every external tool has a cap",
+      all(c.max_seconds for c in _external))
+_std = _SO(tool_timeout=900)
+for _cls in _external:
+    _a = _cls(_std)
+    check(f"{_cls.name} is capped below the global limit",
+          _a.budget() == _cls.max_seconds < 900)
+
+# A cap must never override a *shorter* global limit, or --tool-timeout lies.
+_tight = _SO(tool_timeout=30)
+check("a shorter global limit still wins",
+      all(c(_tight).budget() == 30 for c in _external))
+
+# ...and must not strangle a sweep the operator deliberately widened.
+_deep = _preset(_SO(tool_timeout=3600), "deep")
+check("--deep scales the caps up",
+      all(c(_deep).budget() > c.max_seconds for c in _external))
+check("the reported timeout is the one enforced",
+      _cls(_tight).budget() == _cls(_tight).budget(None))
+
 # --- OSINT Framework catalogue --------------------------------------------
 print("\nOSINT Framework catalogue")
 from omnisint.catalog import (FEATURED, attribution, counts, flags,

@@ -32,6 +32,9 @@ class Adapter:
     #: Cap this adapter's wall-clock below the global --tool-timeout, for
     #: backends that should be a quick lookup rather than a full sweep.
     max_seconds: int | None = None
+    #: --deep legitimately takes longer, so the cap scales rather than
+    #: strangling a sweep the operator deliberately widened.
+    deep_multiplier: int = 4
     #: Excluded from the default set; must be asked for by name or by flag.
     opt_in: bool = False
     #: Exact command that installs this backend.
@@ -70,10 +73,7 @@ class Adapter:
         except subprocess.TimeoutExpired:
             # Report the budget, not the whole argv — the raw command is
             # noise in a findings report.
-            # _sh enforces min(tool_timeout, max_seconds); report that, not
-            # whichever is larger, or the caveat misstates the budget.
-            limit = min(self.opts.tool_timeout,
-                        self.max_seconds or self.opts.tool_timeout)
+            limit = self.budget()
             msg = (f"{self.name}: timed out after {limit}s — no results from "
                    "this source (not a negative result)")
             return AdapterResult(warnings=[msg]), ToolRun(
@@ -100,11 +100,24 @@ class Adapter:
         )
 
     # -- helpers ----------------------------------------------------------
+    def budget(self, requested: int | None = None) -> int:
+        """Seconds this adapter actually gets.
+
+        The per-adapter cap is the important half: without one, a single
+        wedged tool holds the whole scan for the global --tool-timeout
+        while the console shows a spinner and nothing else.
+        """
+        limit = requested or self.opts.tool_timeout
+        cap = self.max_seconds
+        if cap is not None:
+            if self.opts.all_sites:
+                cap *= self.deep_multiplier
+            limit = min(limit, cap)
+        return limit
+
     def _sh(self, cmd: Iterable[str], timeout: int | None = None, cwd=None):
         cmd = [str(c) for c in cmd]
-        budget = timeout or self.opts.tool_timeout
-        if self.max_seconds is not None:
-            budget = min(budget, self.max_seconds)
+        budget = self.budget(timeout)
         proc = subprocess.run(
             cmd,
             capture_output=True,

@@ -26,6 +26,8 @@ class MaigretAdapter(Adapter):
     name = "maigret"
     binary = "maigret"
     accepts = (IdType.USERNAME,)
+    #: Around 35s for the top 500 sites. --deep scales this by four.
+    max_seconds = 240
     base_weight = 0.7
     install = "pip install maigret"
     homepage = "https://github.com/soxoj/maigret"

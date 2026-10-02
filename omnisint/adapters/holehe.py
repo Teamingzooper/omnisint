@@ -16,6 +16,8 @@ class HoleheAdapter(Adapter):
     name = "holehe"
     binary = "holehe"
     accepts = (IdType.EMAIL,)
+    #: Seconds when it works; when rate limited it returns almost instantly.
+    max_seconds = 120
     base_weight = 0.72
     install = "pip install holehe"
     homepage = "https://github.com/megadose/holehe"

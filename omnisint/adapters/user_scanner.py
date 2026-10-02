@@ -14,6 +14,9 @@ class UserScannerAdapter(Adapter):
     name = "user-scanner"
     binary = "user-scanner"
     accepts = (IdType.USERNAME, IdType.EMAIL)
+    #: Observed 8-32s for a username and ~27s for an email; the spread is
+    #: rate limiting, not progress, so three minutes is already generous.
+    max_seconds = 180
     base_weight = 0.68
     install = "pip install user-scanner"
     homepage = "https://github.com/kaifcodec/user-scanner"

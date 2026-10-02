@@ -16,6 +16,8 @@ class SherlockAdapter(Adapter):
     accepts = (IdType.USERNAME,)
     # Deliberately low: Sherlock's status-code heuristics produce real
     # false positives (Reddit will "match" almost any string).
+    #: Around 8-25s for its full site list.
+    max_seconds = 180
     base_weight = 0.45
     # NB: the PyPI name is `sherlock-project`. `pip install sherlock`
     # installs an unrelated package and will not work.

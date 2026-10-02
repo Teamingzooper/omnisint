@@ -5,6 +5,8 @@ identifiers that turn up along the way.
 from __future__ import annotations
 
 import shutil
+import threading
+import time
 import tempfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -105,12 +107,34 @@ class Engine:
         # Not a `with` block: its __exit__ waits for every worker, so a
         # Ctrl-C mid-scan would appear to hang instead of returning control.
         pool = ThreadPoolExecutor(max_workers=self.opts.workers)
+        inflight: dict[str, tuple[float, int]] = {}
+        stop_watch = threading.Event()
+
+        def watchdog():
+            """Say that a slow tool is still running.
+
+            Without this a tool that takes half a minute is indistinguishable
+            from one that has wedged: the console shows a spinner either way,
+            and the operator reasonably concludes it is unresponsive.
+            """
+            while not stop_watch.wait(10):
+                now = time.time()
+                for label, (started, budget) in sorted(inflight.items()):
+                    waited = now - started
+                    if waited >= 25:
+                        self.progress("slow", f"{label} — still running "
+                                              f"({waited:.0f}s of {budget}s)")
+
+        threading.Thread(target=watchdog, daemon=True,
+                         name="omnisint-watchdog").start()
         try:
             futures = {}
             for adapter, ident in jobs:
                 wd = root / f"{adapter.name}_{ident.type.value}_{abs(hash(ident.value)) % 10**8}"
                 wd.mkdir(parents=True, exist_ok=True)
-                self.progress("start", f"{adapter.name} → {ident.value}")
+                label = f"{adapter.name} → {ident.value}"
+                self.progress("start", label)
+                inflight[label] = (time.time(), adapter.budget())
                 futures[pool.submit(adapter.execute, ident, wd)] = (adapter, ident)
 
             for fut in as_completed(futures):
@@ -118,9 +142,11 @@ class Engine:
                 try:
                     result, run = fut.result()
                 except Exception as exc:
+                    inflight.pop(f"{adapter.name} → {ident.value}", None)
                     profile.warnings.append(f"{adapter.name}: {exc}")
                     self.progress("fail", f"{adapter.name} → {ident.value}")
                     continue
+                inflight.pop(f"{adapter.name} → {ident.value}", None)
 
                 profile.runs.append(run)
                 merge_evidence(profile, ident.value, result.evidence)
@@ -157,6 +183,7 @@ class Engine:
                 "them finding nothing."))
             raise
         finally:
+            stop_watch.set()
             pool.shutdown(wait=False)
 
         # Deduplicate discovered identifiers, keeping the shallowest origin.

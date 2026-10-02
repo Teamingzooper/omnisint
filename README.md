@@ -472,6 +472,33 @@ Nothing ever reaches certainty. A parsed profile body adds a small bonus,
 because rendered profile fields prove something is actually there in a way a
 status code does not.
 
+## No single tool can stall a scan
+
+Every external tool is capped independently, below the global
+`--tool-timeout`. Without that, one wedged backend holds the whole scan for
+the global limit while the console shows a spinner — which looks exactly
+like the tool being broken.
+
+| Tool | Cap | Observed runtime |
+|---|---|---|
+| maigret | 240s | ~35s for the top 500 sites |
+| sherlock | 180s | 8–25s |
+| user-scanner | 180s | 8–32s, varying with rate limits |
+| spiderfoot | 180s | never settles; read as a stream |
+| holehe | 120s | seconds, or instant when rate limited |
+
+`--deep` scales every cap by four, so widening a sweep deliberately is not
+strangled by a limit meant to catch a hang.
+
+Anything that takes more than 25 seconds reports that it is still working,
+with its budget, so slow is distinguishable from dead:
+
+```
+  ✔ user-scanner → teamingzooper (9 hits, 24.8s)
+  ⋯ maigret → teamingzooper — still running (30s of 240s)
+  ✔ maigret → teamingzooper (9 hits, 42.8s)
+```
+
 ## Silence is not absence
 
 A tool that got rate-limited on every site has told you *nothing*, and left
