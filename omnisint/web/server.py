@@ -293,6 +293,22 @@ def make_handler(state: State, token: str):
             except json.JSONDecodeError:
                 return self._fail(HTTPStatus.BAD_REQUEST, "malformed JSON")
 
+            if url.path == "/api/leads":
+                raw = payload.get("targets") or ""
+                primary, _ = (ConsoleApp.parse_line(raw) if isinstance(raw, str)
+                              else ([str(x) for x in raw], []))
+                seeds = [Identifier.parse(x) for x in primary]
+                from ..catalog import attribution, flags, leads_for
+                found = leads_for(seeds, limit=int(payload.get("limit") or 12))
+                return self._json({
+                    "attribution": attribution(),
+                    "buckets": [
+                        {"bucket": b,
+                         "items": [{**e, "flags": flags(e)} for e in items]}
+                        for b, items in found.items()
+                    ],
+                })
+
             if url.path == "/api/advise":
                 raw = payload.get("targets") or ""
                 primary, sec = (ConsoleApp.parse_line(raw) if isinstance(raw, str)

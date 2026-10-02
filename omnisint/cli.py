@@ -68,6 +68,8 @@ def build_parser() -> argparse.ArgumentParser:
                        help="run only these adapters")
     tools.add_argument("--exclude", default="", metavar="A,B",
                        help="skip these adapters")
+    tools.add_argument("--spiderfoot", action="store_true",
+                       help="also run SpiderFoot (DNS, certs, WHOIS; slow)")
     tools.add_argument("--hudson", action="store_true",
                        help="also check infostealer breach exposure (slow)")
     tools.add_argument("--darkweb", action="store_true",
@@ -262,7 +264,8 @@ def cmd_scan(args, console) -> int:
         delay=args.delay,
         only={s.strip() for s in args.only.split(",") if s.strip()}
              | ({"darkweb"} if args.darkweb else set())
-             | ({"hudsonrock"} if args.hudson else set()),
+             | ({"hudsonrock"} if args.hudson else set())
+             | ({"spiderfoot"} if args.spiderfoot else set()),
         exclude={s.strip() for s in args.exclude.split(",") if s.strip()},
         min_confidence=args.min_confidence,
         keep_raw=args.keep_raw,

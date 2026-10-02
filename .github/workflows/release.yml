@@ -48,17 +48,19 @@ jobs:
 
       # The web UI is data files, not modules, so it is the thing most likely
       # to go missing from a wheel without anything failing loudly.
-      - name: Verify the wheel actually contains the web UI
+      - name: Verify the wheel contains the web UI and the catalogue
         run: |
           python - <<'PY'
           import glob, sys, zipfile
           wheel = glob.glob("dist/*.whl")[0]
           names = zipfile.ZipFile(wheel).namelist()
-          missing = [f for f in ("index.html", "app.js", "app.css")
-                     if f"omnisint/web/static/{f}" not in names]
+          required = [f"omnisint/web/static/{f}"
+                      for f in ("index.html", "app.js", "app.css")]
+          required.append("omnisint/data/osint-framework.json")
+          missing = [f for f in required if f not in names]
           if missing:
-              sys.exit(f"wheel is missing web assets: {missing}")
-          print(f"{wheel}: web assets present")
+              sys.exit(f"wheel is missing data files: {missing}")
+          print(f"{wheel}: web assets and catalogue present")
           PY
 
       - name: Verify the tag matches the packaged version

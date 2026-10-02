@@ -74,6 +74,7 @@ scan — it does not exit; use [cyan]quit[/cyan] for that.
   [cyan]opts[/cyan]            show current settings
   [cyan]tools[/cyan]           which backends are installed
   [cyan]web[/cyan]             open the local browser UI (Ctrl-C returns here)
+  [cyan]leads [n][/cyan]       where to look by hand (OSINT Framework catalogue)
   [cyan]found[/cyan]           identifiers the scan discovered — search them too
   [cyan]view[/cyan] / [cyan]last[/cyan]     reopen the last report in the browser
   [cyan]export [dir][/cyan]    write JSON + HTML + Markdown (never automatic)
@@ -89,7 +90,7 @@ _TOGGLE_FLAGS = {
     "-d": "deep", "--deep": "deep",
     "-s": "standard", "--standard": "standard",
     "--nsfw": "nsfw", "--active": "active", "--darkweb": "darkweb",
-    "--hudson": "hudson",
+    "--hudson": "hudson", "--spiderfoot": "spiderfoot",
     "--passive": "passive",
 }
 _VALUE_FLAGS = {
@@ -113,7 +114,7 @@ _COMMANDS = {"scan", "go", "run", "show", "drop", "deep", "pivot", "set",
              "opts", "options", "tools", "last", "save", "help", "?", "quit",
              "exit", "q", "clear", "expand", "quick", "standard", "verbose",
              "-q", "-d", "-v", "-s", "export", "view", "sec", "secondary",
-             "+", "found", "web", "ui", "examples", "undo", "again"}
+             "+", "found", "web", "ui", "examples", "undo", "again", "leads"}
 
 
 class Console:
@@ -233,6 +234,10 @@ class Console:
             elif name == "passive":
                 self.opts.passive = True
                 self.c.print("  [green]passive mode[/green]")
+            elif name == "spiderfoot":
+                self.opts.only = set(self.opts.only) | {"spiderfoot"}
+                self.c.print("  [green]SpiderFoot enabled[/green][dim] — DNS, "
+                             "certificates, WHOIS; adds minutes[/dim]")
             elif name == "hudson":
                 self.opts.only = set(self.opts.only) | {"hudsonrock"}
                 self.c.print("  [green]breach-exposure check enabled[/green]"
@@ -658,6 +663,39 @@ class Console:
         self.c.print(f"\n[dim]{len(chosen)} added — press Enter to scan, or "
                      "add more first.[/dim]\n")
 
+    def _leads(self, rest: list[str]) -> None:
+        """Where to look by hand, for the identifiers currently loaded."""
+        from .catalog import attribution, flags, leads_for
+
+        targets = self.targets or (self.last.seeds if self.last else [])
+        if not targets:
+            self.c.print("[dim]Load an identifier first — leads are chosen by "
+                         "what type it is.[/dim]")
+            return
+        limit = int(rest[0]) if rest and rest[0].isdigit() else 8
+        found = leads_for(targets, limit=limit)
+        if not found:
+            self.c.print("[dim]No catalogued resources take these identifier "
+                         "types.[/dim]")
+            return
+
+        self.c.print("\n[bold]Where to look by hand[/bold] [dim]— Omnisint does "
+                     "not query these; it points you at them.[/dim]")
+        for bucket, items in found.items():
+            self.c.print(f"\n  [bold cyan]{bucket}[/bold cyan]")
+            for entry in items:
+                marks = flags(entry)
+                warn = ("[red]" + ", ".join(marks) + "[/red]"
+                        if "touches the subject" in marks
+                        else ("[dim]" + ", ".join(marks) + "[/dim]" if marks else ""))
+                self.c.print(f"    [bold]{entry['name']}[/bold]  {warn}")
+                self.c.print(f"      [blue]{entry['url']}[/blue]")
+                if entry.get("best_for"):
+                    self.c.print(f"      [dim]{entry['best_for']}[/dim]")
+        self.c.print(f"\n  [dim]'touches the subject' means querying it reaches "
+                     f"their infrastructure — it is not passive.[/dim]")
+        self.c.print(f"  [dim]Catalogue: {attribution()}[/dim]\n")
+
     def _examples(self) -> None:
         self.c.print("""
 [bold]Just a handle[/bold]
@@ -852,6 +890,8 @@ class Console:
                     self._export(rest[0] if rest else None)
                 elif head == "view":
                     self._view()
+                elif head == "leads":
+                    self._leads(rest)
                 elif head == "examples":
                     self._examples()
                 elif head == "undo":

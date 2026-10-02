@@ -8,6 +8,7 @@ from .adapters.maigret import MaigretAdapter
 from .adapters.native import BreachAdapter, GravatarAdapter, InfrastructureAdapter
 from .adapters.phone import PhoneAdapter, ToutatisAdapter
 from .adapters.sherlock import SherlockAdapter
+from .adapters.spiderfoot import SpiderFootAdapter
 from .adapters.user_scanner import HudsonRockAdapter, UserScannerAdapter
 
 ALL_ADAPTERS: tuple[type[Adapter], ...] = (
@@ -19,6 +20,7 @@ ALL_ADAPTERS: tuple[type[Adapter], ...] = (
     ToutatisAdapter,
     HudsonRockAdapter,
     InfrastructureAdapter,
+    SpiderFootAdapter,
     PhoneAdapter,
     DarkWebAdapter,
     BreachAdapter,

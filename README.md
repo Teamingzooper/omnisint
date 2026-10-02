@@ -154,6 +154,82 @@ login and serves personal data. Tunnel over SSH if you need it elsewhere. The
 authorisation gate and audit log apply exactly as they do in the console, and
 nothing is written to disk until you press Export.
 
+## Where to look by hand
+
+Omnisint automates the tools it can drive honestly. Most OSINT resources
+cannot be — they are web forms, paywalls, captchas, and services whose terms
+forbid scraping. Pretending otherwise would mean hammering third parties and
+returning garbage.
+
+So the [OSINT Framework](https://github.com/lockfale/OSINT-Framework)
+catalogue ships as a **launcher**, not a scraper. `leads` in the console, or
+the **Look by hand** tab in the UI, lists the resources that accept the
+identifier types you are holding:
+
+```
+◉ leads
+
+  email
+    Have I been pwned?   account needed, freemium, has API
+      https://haveibeenpwned.com/
+      Breach detection, credential exposure checks
+
+  username
+    WhatsMyName Web      touches the subject
+      https://whatsmyname.app/
+```
+
+Nothing here is ever queried by Omnisint. Three things make it useful rather
+than a wall of links:
+
+- **`touches the subject`** — the catalogue records whether a resource is
+  passive or reaches the subject's own infrastructure. Omnisint is passive by
+  default, and this is precisely how that gets undone, so it is called out in
+  red. `leads` can filter actives out entirely.
+- **Cost up front** — account needed, paid, freemium, install required, flaky.
+  You learn before the click, not after.
+- **Ranked by what you would actually try first.** Sorting the free tier
+  alphabetically puts *AnnualReports.com* above Have I Been Pwned, so the
+  canonical first stops are ranked explicitly per identifier type.
+
+843 resources ship, curated from 1,168: dead, deprecated and duplicate
+entries dropped, and anything that cannot be routed to an identifier type we
+recognise. Refresh from upstream with `python3 tools/build_catalog.py`.
+
+Catalogue by *OSINT Framework* (Justin Nordine), MIT licensed.
+
+## SpiderFoot
+
+[SpiderFoot](https://github.com/smicallef/spiderfoot) answers a different
+question from everything else here. The username sweepers ask "does this
+handle exist on this site?"; SpiderFoot walks outward from a target through
+DNS, certificate transparency, WHOIS, breach data and 200+ other modules. It
+contributes the infrastructure and derived identifiers they cannot see.
+
+```bash
+git clone https://github.com/smicallef/spiderfoot ~/spiderfoot
+omnisint scan example.com --spiderfoot        # or `--spiderfoot` in the console
+```
+
+Set `OMNISINT_SPIDERFOOT=/path/to/sf.py` if it lives elsewhere.
+
+It is **opt-in**, for a reason worth knowing: a SpiderFoot scan need not ever
+finish. Its modules consume each other's output, so DNS finds an IP, which
+finds a host, which resolves again, indefinitely. Running the default domain
+module set against `example.com` was still going after five minutes.
+
+Omnisint therefore reads its CSV stream against a deadline rather than
+waiting for exit, keeps whatever arrived, and says so:
+
+> spiderfoot: stopped at 180s with partial results. Its modules feed each
+> other, so a scan need not ever settle — what is here is real, what is
+> absent was simply not reached.
+
+Modules are chosen per identifier type (pointing the 500-site account sweep
+at a domain costs minutes and finds nothing) and intersected with what your
+install actually ships, so a renamed module cannot break the run. `-d` widens
+it to SpiderFoot's own passive use case.
+
 ## It checks your query before spending your time
 
 The most expensive mistake this tool allows is a bad query. Typing a name

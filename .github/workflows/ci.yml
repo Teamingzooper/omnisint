@@ -45,3 +45,15 @@ jobs:
           omnisint --version
           omnisint tools
           omni --help
+
+      # The catalogue is package data, so it can go missing from an install
+      # without any import failing.
+      - name: Catalogue loads from the installed package
+        run: |
+          python -c "
+          from omnisint.catalog import counts, attribution
+          c = counts()
+          assert sum(c.values()) > 500, c
+          assert 'Nordine' in attribution()
+          print('catalogue ok:', c)
+          "

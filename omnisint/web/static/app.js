@@ -21,7 +21,7 @@ const state = {
   runId: null, profile: null, tab: "accounts",
   rows: [], selected: null, sort: { key: "confidence", dir: -1 }, poll: null,
   // Accounts the operator stacked into one identity, keyed by URL||platform.
-  pins: new Map(),
+  pins: new Map(), leads: null, leadsAttribution: "",
 };
 
 const pinKey = (a) => (a.url || a.platform || "").toLowerCase();
@@ -113,6 +113,7 @@ const TABS = [
   { key: "identity",  label: "Identity" },
   { key: "personas",  label: "Identities" },
   { key: "found",     label: "Discovered" },
+  { key: "leads",     label: "Look by hand" },
   { key: "infra",     label: "Infrastructure" },
   { key: "breaches",  label: "Breaches" },
   { key: "tools",     label: "Tools" },
@@ -127,6 +128,7 @@ function counts(key) {
     case "identity": return Object.keys(p.identity.names || {}).length;
     case "personas": return (p.personas || []).length;
     case "found":    return (p.identifiers || []).filter(i => i.origin !== "input").length;
+    case "leads":    return (state.leads || []).reduce((n, b) => n + b.items.length, 0);
     case "infra":    return Object.keys(p.infrastructure || {}).length
                           + Object.keys(p.phones || {}).length;
     case "breaches": return (p.breaches || []).length;
@@ -143,7 +145,11 @@ function renderTabs() {
     node.appendChild(document.createTextNode(t.label));
     const c = counts(t.key);
     if (c !== "" && c !== 0) node.appendChild(el("span", "count", ` (${c})`));
-    node.onclick = () => { state.tab = t.key; state.selected = null; render(); };
+    node.onclick = () => {
+      state.tab = t.key; state.selected = null;
+      if (t.key === "leads" && !state.leads) loadLeads();
+      render();
+    };
     bar.appendChild(node);
   }
 }
@@ -385,6 +391,48 @@ function viewFound() {
   }
 }
 
+function viewLeads() {
+  const host = $("grid"); clear(host);
+  const note = el("div", "summary");
+  note.appendChild(el("div", "sumhead", "Where to look by hand"));
+  note.appendChild(el("div", null,
+    "Omnisint never queries these — it points you at them. Resources marked "
+    + "“touches the subject” reach their own infrastructure when you use them, "
+    + "which is not passive."));
+  if (state.leadsAttribution)
+    note.appendChild(el("div", "sumbasis", "Catalogue: " + state.leadsAttribution));
+  host.appendChild(note);
+
+  const rows = [];
+  (state.leads || []).forEach(b => b.items.forEach(e =>
+    rows.push({ ...e, bucket: b.bucket, warn: (e.flags || []).join(", ") })));
+  if (!rows.length) {
+    host.appendChild(el("div", "empty",
+      "No catalogued resource takes these identifier types."));
+    return;
+  }
+  const table = el("table", "grid");
+  const head = el("tr");
+  ["For", "Resource", "URL", "Notes", "Good for"].forEach(h => head.appendChild(el("th", null, h)));
+  table.appendChild(head);
+  rows.forEach(r => {
+    const tr = el("tr", (r.flags || []).includes("touches the subject") ? "other" : "possible");
+    tr.appendChild(el("td", null, r.bucket));
+    tr.appendChild(el("td", null, r.name));
+    const td = el("td"); td.appendChild(link(r.url)); tr.appendChild(td);
+    tr.appendChild(el("td", null, r.warn || "free · passive"));
+    tr.appendChild(el("td", null, r.best_for || r.desc || ""));
+    tr.onclick = () => detail(`Lead — ${r.name}`,
+      [["url", r.url], ["category", r.category], ["pricing", r.pricing],
+       ["opsec", r.opsec]].concat(r.opsec_note ? [["opsec note", r.opsec_note]] : []),
+      [{ text: r.desc || "", tone: "" },
+       ...((r.flags || []).includes("touches the subject")
+          ? [{ text: "Using this reaches the subject's infrastructure.", tone: "warn" }] : [])]);
+    table.appendChild(tr);
+  });
+  host.appendChild(table);
+}
+
 function viewInfra() {
   const p = state.profile, rows = [];
   Object.entries(p.infrastructure || {}).forEach(([domain, info]) =>
@@ -457,12 +505,16 @@ function viewCaveats() {
 }
 
 const VIEWS = { accounts: viewAccounts, identity: viewIdentity, personas: viewPersonas,
-                found: viewFound, infra: viewInfra, breaches: viewBreaches,
-                tools: viewTools, caveats: viewCaveats };
+                found: viewFound, leads: viewLeads, infra: viewInfra,
+                breaches: viewBreaches, tools: viewTools, caveats: viewCaveats };
 
 /* -- render ------------------------------------------------------------- */
 function render() {
   renderTabs();
+  // Manual leads do not need a scan — looking things up by hand is often
+  // what you do *instead* of scanning, so this view must work from an empty
+  // session rather than waiting for results that may never come.
+  if (state.tab === "leads") { viewLeads(); return; }
   if (!state.profile) return;
   const p = state.profile;
 
@@ -634,6 +686,18 @@ async function checkAdvice() {
   }, 350);
 }
 
+async function loadLeads() {
+  const raw = $("targets").value.trim()
+    || (state.profile ? state.profile.seeds.map(s => s.value).join(", ") : "");
+  if (!raw) { state.leads = []; return; }
+  try {
+    const r = await api("/api/leads", { method: "POST",
+      body: JSON.stringify({ targets: raw, limit: 12 }) });
+    state.leads = r.buckets; state.leadsAttribution = r.attribution;
+  } catch { state.leads = []; }
+  render();
+}
+
 async function startScan(withPins, force) {
   const raw = $("targets").value.trim();
   const pins = withPins ? [...state.pins.values()] : [];
@@ -651,7 +715,7 @@ async function startScan(withPins, force) {
   $("go").disabled = true; $("stopHint").disabled = false;
   $("export").disabled = true;
   clear($("log")); $("bar").style.width = "0";
-  state.profile = null; state.selected = null;
+  state.profile = null; state.selected = null; state.leads = null;
   clear($("grid")); $("grid").appendChild(el("div", "empty", "Scanning…"));
   status(pins.length
     ? `Starting — rescanning around ${pins.length} confirmed account(s)…`

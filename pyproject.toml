@@ -64,4 +64,4 @@ omni = "omnisint.cli:main"
 include = ["omnisint*"]
 
 [tool.setuptools.package-data]
-omnisint = ["web/static/*"]
+omnisint = ["web/static/*", "data/*.json"]

@@ -70,7 +70,10 @@ class Adapter:
         except subprocess.TimeoutExpired:
             # Report the budget, not the whole argv — the raw command is
             # noise in a findings report.
-            limit = self.max_seconds or self.opts.tool_timeout
+            # _sh enforces min(tool_timeout, max_seconds); report that, not
+            # whichever is larger, or the caveat misstates the budget.
+            limit = min(self.opts.tool_timeout,
+                        self.max_seconds or self.opts.tool_timeout)
             msg = (f"{self.name}: timed out after {limit}s — no results from "
                    "this source (not a negative result)")
             return AdapterResult(warnings=[msg]), ToolRun(

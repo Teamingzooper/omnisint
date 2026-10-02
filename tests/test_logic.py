@@ -262,6 +262,71 @@ check("unknown setting is reported", "Unknown setting" in _buf.getvalue())
 _con._set("timeout", "abc")
 check("non-numeric setting is reported", "not a valid int" in _buf.getvalue())
 
+# --- OSINT Framework catalogue --------------------------------------------
+print("\nOSINT Framework catalogue")
+from omnisint.catalog import (FEATURED, attribution, counts, flags,
+                              leads_for, _catalog)
+
+_cat = _catalog()
+check("catalogue ships with the package", len(_cat["resources"]) > 500)
+check("it credits the upstream project",
+      "Nordine" in attribution() and "lockfale" in attribution())
+check("every resource has a url and at least one type",
+      all(r.get("url") and r.get("types") for r in _cat["resources"]))
+check("nothing dead or deprecated survived curation",
+      not any(r.get("deprecated") or r.get("status") in ("down", "defunct")
+              for r in _cat["resources"]))
+check("no duplicate urls",
+      len({r["url"].rstrip("/").lower() for r in _cat["resources"]})
+      == len(_cat["resources"]))
+
+_leads = leads_for([Identifier.parse(v) for v in
+                    ("alex rivera", "ajr", "a@b.com", "example.com",
+                     "+14155550100")], limit=6)
+check("routes each identifier type to resources",
+      {"name", "username", "email", "domain", "phone"} <= set(_leads))
+check("the canonical email resource ranks first",
+      "pwned" in _leads["email"][0]["name"].lower())
+check("the canonical domain resource ranks first",
+      "crt.sh" in _leads["domain"][0]["name"].lower())
+check("limit is honoured", all(len(v) <= 6 for v in _leads.values()))
+check("an unroutable type yields nothing", leads_for([]) == {})
+
+# opsec is the field that matters: it says whether using a resource reaches
+# the subject. Omnisint is passive by default, so this must be surfaced.
+check("active resources are flagged as touching the subject",
+      all("touches the subject" in flags(r)
+          for r in _cat["resources"] if r["opsec"] == "active"))
+check("passive-only filtering excludes them",
+      all(r["opsec"] == "passive"
+          for v in leads_for([Identifier.parse("ajr")],
+                             include_active=False).values() for r in v))
+check("paid and registration costs are surfaced",
+      "account needed" in flags({"name": "x", "registration": True}))
+check("counts cover every bucket", set(counts()) >= set(FEATURED))
+
+# --- SpiderFoot -----------------------------------------------------------
+print("\nSpiderFoot adapter")
+from omnisint.adapters.spiderfoot import (MODULES_BY_TYPE, SpiderFootAdapter)
+
+check("it is opt-in", SpiderFootAdapter.opt_in)
+check("it documents how to install it", bool(SpiderFootAdapter.install))
+check("each accepted type has its own module set",
+      all(t in MODULES_BY_TYPE for t in SpiderFootAdapter.accepts))
+check("the account sweep is not aimed at domains",
+      "sfp_accounts" not in MODULES_BY_TYPE[IdType.DOMAIN])
+check("usernames do get the account sweep",
+      "sfp_accounts" in MODULES_BY_TYPE[IdType.USERNAME])
+
+# SpiderFoot prints four columns though its header claims three.
+_row = ["sfp_dnsresolve", "IP Address", "example.com", "104.20.23.154"]
+check("its CSV really has four columns", len(_row) == 4)
+check("account strings split into platform and url",
+      SpiderFootAdapter._split_account("GitHub: https://github.com/x")
+      == ("GitHub", "https://github.com/x"))
+check("a bare url still yields a platform",
+      SpiderFootAdapter._split_account("https://github.com/x")[0] == "github.com")
+
 # --- pre-flight query review ----------------------------------------------
 print("\npre-flight advice")
 from omnisint.advice import collision_risk as _risk, review as _review
