@@ -288,6 +288,31 @@ check("--deep scales the caps up",
 check("the reported timeout is the one enforced",
       _cls(_tight).budget() == _cls(_tight).budget(None))
 
+# A caveat that misstates the budget is worse than no caveat: it tells the
+# operator a tool was given fifteen minutes when it was given three.
+from omnisint.adapters.base import Adapter as _Adapter, AdapterResult as _AR
+import pathlib as _pl, tempfile as _tf
+
+
+class _SlowTool(_Adapter):
+    name = "slow-tool"
+    binary = None
+    accepts = (IdType.USERNAME,)
+    max_seconds = 180
+
+    def run(self, ident, workdir):
+        self._sh(["sleep", "60"])
+        return _AR()
+
+
+_slow = _SlowTool(_SO(tool_timeout=4))
+_res, _run = _slow.execute(Identifier.parse("x"), _pl.Path(_tf.mkdtemp()))
+check("a timeout is reported, not swallowed", not _run.ok and _run.error)
+check("the caveat names the enforced budget, not the global one",
+      "4s" in _res.warnings[0] and "900" not in _res.warnings[0])
+check("a capped tool cannot reach the global limit",
+      _SlowTool(_SO(tool_timeout=900)).budget() == 180)
+
 # --- OSINT Framework catalogue --------------------------------------------
 print("\nOSINT Framework catalogue")
 from omnisint.catalog import (FEATURED, attribution, counts, flags,
