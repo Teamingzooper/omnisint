@@ -6,6 +6,7 @@ number) and you want every tool on the box pointed at all of them at once.
 """
 from __future__ import annotations
 
+import atexit
 import re
 import shlex
 import time
@@ -15,7 +16,7 @@ from . import __version__
 from .brand import MARK, banner
 from .config import PRESET_BLURB, ScanOptions, apply_preset
 from .engine import Engine
-from .ethics import AuthorizationError, audit, require_authorization
+from .ethics import HOME, AuthorizationError, audit, require_authorization
 from .models import Identifier, IdType
 from .registry import adapter_status
 from .report import render_html, render_json, render_markdown
@@ -115,6 +116,52 @@ _COMMANDS = {"scan", "go", "run", "show", "drop", "deep", "pivot", "set",
              "exit", "q", "clear", "expand", "quick", "standard", "verbose",
              "-q", "-d", "-v", "-s", "export", "view", "sec", "secondary",
              "+", "found", "web", "ui", "examples", "undo", "again", "leads"}
+
+
+def _enable_line_editing(home) -> None:
+    """Give the prompt arrow keys, history and tab completion.
+
+    Bare input() has none of these: pressing Left emits a raw escape
+    sequence into the line (^[[D) and Up cannot recall anything. Importing
+    readline is what wires them up, and on macOS the binding has to be asked
+    for explicitly because the stdlib links libedit rather than GNU readline.
+    """
+    try:
+        import readline
+    except ImportError:          # readline is absent on some platforms
+        return
+
+    if "libedit" in (getattr(readline, "__doc__", "") or ""):
+        readline.parse_and_bind("bind ^I rl_complete")
+    else:
+        readline.parse_and_bind("tab: complete")
+
+    history = home / "history"
+    try:
+        home.mkdir(parents=True, exist_ok=True)
+        if history.exists():
+            readline.read_history_file(str(history))
+        readline.set_history_length(500)
+        atexit.register(_save_history, readline, str(history))
+    except OSError:
+        pass                      # history is a convenience, never fatal
+
+    def complete(text: str, state: int):
+        options = [c for c in sorted(_COMMANDS)
+                   if c.startswith(text.lower()) and not c.startswith("-")]
+        return options[state] if state < len(options) else None
+
+    readline.set_completer(complete)
+    readline.set_completer_delims(" \t")
+
+
+def _save_history(readline, path: str) -> None:
+    try:
+        readline.write_history_file(path)
+        import os
+        os.chmod(path, 0o600)     # it records who you looked into
+    except OSError:
+        pass
 
 
 class Console:
@@ -296,13 +343,14 @@ class Console:
         if not raw.strip():
             return
         primary_raw, secondary_raw = self.parse_line(raw)
-        added, skipped = [], []
+        added, skipped, duplicates = [], [], []
         for piece in primary_raw:
             ident = Identifier.parse(piece)
             if ident.type is IdType.UNKNOWN:
                 skipped.append(piece)
                 continue
             if any(t.key() == ident.key() for t in self.targets):
+                duplicates.append(ident.value)
                 continue
             self.targets.append(ident)
             added.append(ident)
@@ -316,6 +364,8 @@ class Console:
                         "type [cyan]expand[/cyan] to also search likely handles[/dim]")
             self.c.print(f"  [green]+[/green] {ident.value}  "
                          f"[dim]→ {ident.type.value}[/dim]{hint}")
+        for piece in duplicates:
+            self.c.print(f"  [dim]= {piece}  → already loaded[/dim]")
         for piece in skipped:
             self.c.print(f"  [yellow]?[/yellow] {piece}  [dim]→ could not "
                          f"classify; ignored[/dim]")
@@ -406,6 +456,28 @@ class Console:
 
         plan = engine.plan(self.targets)
         if not plan:
+            names = [t for t in self.targets if t.type is IdType.NAME]
+            if names and len(names) == len(self.targets):
+                # A name is not searchable: no backend takes one. It anchors
+                # identity instead. Saying "no tool accepts this" and stopping
+                # is a dead end when `expand` is exactly the way forward.
+                self.c.print(
+                    f"\n[yellow]A name on its own cannot be searched.[/yellow] "
+                    f"No site lets you look up "
+                    f"'{names[0].value}' directly — a name is what Omnisint "
+                    f"uses to decide [italic]which[/italic] account is your "
+                    f"subject, not what it searches for.\n\n"
+                    f"  [cyan]expand[/cyan][dim] — turn it into likely handles "
+                    f"({', '.join(self._expansion_preview(names[0]))}…) "
+                    f"and search those[/dim]\n"
+                    f"  [dim]or add a handle, email or phone you already "
+                    f"know.[/dim]")
+                try:
+                    if input("\n  Expand it now? [Y/n] ").strip().lower() in ("", "y", "yes"):
+                        self._expand()
+                except (EOFError, KeyboardInterrupt):
+                    self.c.print()
+                return
             self.c.print("[yellow]No installed tool accepts these identifier "
                          "types.[/yellow] Try [bold]tools[/bold].")
             return
@@ -786,6 +858,7 @@ class Console:
 
     # -- loop -------------------------------------------------------------
     def run(self) -> int:
+        _enable_line_editing(HOME)
         ready = sum(1 for r in adapter_status() if r["available"])
         self.c.print(banner(self.c.size.width, __version__, ready, self.auth.case))
         self.c.print(
@@ -943,6 +1016,11 @@ class Console:
          self.opts.nsfw, self.opts.proxy, self.opts.tor, self.opts.only,
          self.opts.exclude) = keep
         self.c.print(f"[green]{name}[/green] — {PRESET_BLURB[name]}")
+
+    @staticmethod
+    def _expansion_preview(name) -> list[str]:
+        from .names import candidates
+        return candidates(name.value, limit=3)
 
     def _expand(self) -> None:
         """Turn each loaded name into the handles a person plausibly picks."""

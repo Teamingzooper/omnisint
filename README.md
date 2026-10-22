@@ -421,6 +421,28 @@ guessing from corroboration counts. `expand` additionally turns a name into
 the handles people actually pick (`alexrivera`, `a.rivera`,
 `arivera`, …) and searches those — clearly labelled as guesses.
 
+### A name on its own cannot be searched
+
+No backend takes a name: there is no site where you look up "Isabelle Scott"
+and get her accounts. A name is what decides *which* of the matching
+accounts is your subject — it anchors identity rather than driving search.
+
+Entering only a name used to dead-end on "no installed tool accepts these
+identifier types", which is true and useless. It now explains the
+distinction and offers the way forward:
+
+```
+A name on its own cannot be searched. No site lets you look up
+'isabelle scott' directly — a name is what Omnisint uses to decide which
+account is your subject, not what it searches for.
+
+  expand — turn it into likely handles (isabellescott, isabelle.scott,
+           isabelle_scott…) and search those
+  or add a handle, email or phone you already know.
+
+  Expand it now? [Y/n]
+```
+
 ### A shorter name is not a different person
 
 Platforms expose wildly different amounts of a name — Duolingo may carry only

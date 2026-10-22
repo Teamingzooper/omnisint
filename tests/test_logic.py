@@ -262,6 +262,52 @@ check("unknown setting is reported", "Unknown setting" in _buf.getvalue())
 _con._set("timeout", "abc")
 check("non-numeric setting is reported", "not a valid int" in _buf.getvalue())
 
+# --- the console must never dead-end on a name ----------------------------
+print("\nname-only input")
+from omnisint.console import _enable_line_editing as _rl
+
+_names_only = _Con(_RC3(file=_io3.StringIO(), width=90), _SO(),
+                   _Auth(operator="t", basis="b", case="C"))
+_names_only.targets = [Identifier.parse("isabelle scott")]
+from omnisint.engine import Engine as _Engine
+check("a name alone reaches no backend",
+      not _Engine(_SO()).plan(_names_only.targets))
+check("but we can preview what it expands to",
+      _Con._expansion_preview(Identifier.parse("isabelle scott"))[0]
+      == "isabellescott")
+check("the preview is short enough to inline",
+      len(_Con._expansion_preview(Identifier.parse("isabelle scott"))) == 3)
+
+# Re-adding something already loaded must say so rather than doing nothing.
+_dup = _Con(_RC3(file=(_b2 := _io3.StringIO()), width=90), _SO(),
+            _Auth(operator="t", basis="b", case="C"))
+_dup._classify("jdoe")
+_dup._classify("jdoe")
+check("a duplicate is reported, not silently dropped",
+      "already loaded" in _b2.getvalue())
+check("and is not added twice", len(_dup.targets) == 1)
+
+# Line editing: the helper must survive a readline whose __doc__ is None,
+# which is what `"libedit" in None` used to crash on.
+import pathlib as _pl0, tempfile as _tf0, types as _types
+_fake = _types.ModuleType("readline")
+_fake.__doc__ = None
+for _fn in ("parse_and_bind", "read_history_file", "write_history_file",
+            "set_history_length", "set_completer", "set_completer_delims"):
+    setattr(_fake, _fn, lambda *a, **k: None)
+_real = sys.modules.get("readline")
+sys.modules["readline"] = _fake
+try:
+    _rl(_pl0.Path(_tf0.mkdtemp()))
+    _ok = True
+except Exception as _exc:
+    _ok = False
+    print(f"      (helper raised {type(_exc).__name__}: {_exc})")
+finally:
+    if _real is not None:
+        sys.modules["readline"] = _real
+check("line editing survives a readline with no __doc__", _ok)
+
 # --- no tool may stall the whole scan -------------------------------------
 print("\ntimeout budgets")
 from omnisint.registry import ALL_ADAPTERS as _ALL
