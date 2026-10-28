@@ -114,7 +114,7 @@ class InfrastructureAdapter(Adapter):
     """
     name = "infrastructure"
     binary = None
-    accepts = (IdType.EMAIL, IdType.DOMAIN, IdType.URL)
+    accepts = (IdType.EMAIL, IdType.DOMAIN, IdType.URL, IdType.IP)
     base_weight = 0.0  # produces context, not accounts
     install = "built in"
     install_note = "DNS records need: pip install dnspython (a dependency, normally present)"
@@ -125,6 +125,22 @@ class InfrastructureAdapter(Adapter):
         "live.com", "icloud.com", "me.com", "aol.com", "proton.me", "protonmail.com",
         "gmx.com", "mail.com", "yandex.ru", "zoho.com", "tutanota.com", "fastmail.com",
     }
+
+    @staticmethod
+    def _reverse(ip: str) -> list[str]:
+        """PTR records: what name claims this address."""
+        try:
+            import dns.resolver
+            import dns.reversename
+        except ImportError:
+            return []
+        try:
+            name = dns.reversename.from_address(ip.split("/")[0])
+            resolver = dns.resolver.Resolver()
+            resolver.lifetime = 8
+            return sorted(r.to_text().rstrip(".") for r in resolver.resolve(name, "PTR"))
+        except Exception:
+            return []
 
     def _domain_of(self, ident) -> str | None:
         if ident.type is IdType.EMAIL:
@@ -138,6 +154,31 @@ class InfrastructureAdapter(Adapter):
 
     def run(self, ident, workdir) -> AdapterResult:
         res = AdapterResult()
+
+        if ident.type is IdType.IP:
+            ip = ident.value
+            info: dict = {"domain": ip, "kind": "ip address"}
+            ptr = self._reverse(ip)
+            if ptr:
+                info["ptr"] = ptr
+            proc = self._sh(["whois", ip.split("/")[0]],
+                            timeout=min(self.opts.request_timeout, 30))
+            if proc.returncode == 0 and proc.stdout:
+                wanted = ("netname", "orgname", "org-name", "descr", "country",
+                          "netrange", "cidr", "inetnum", "abuse-mailbox")
+                info["whois"] = [
+                    line.strip() for line in proc.stdout.splitlines()
+                    if any(line.strip().lower().startswith(w) for w in wanted)
+                ][:15]
+            res.extras["infrastructure"] = {ip: info}
+            # A PTR name is a lead in its own right.
+            for host in ptr[:3]:
+                cand = Identifier.parse(host, origin=f"ptr:{ip}",
+                                        depth=ident.depth + 1)
+                if cand.type is IdType.DOMAIN:
+                    res.pivots.append(cand)
+            return res
+
         domain = self._domain_of(ident)
         if not domain:
             return res

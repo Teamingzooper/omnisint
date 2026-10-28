@@ -31,7 +31,14 @@ TYPE_MAP = {
     IdType.URL: "domain",
     IdType.PHONE: "phone",
     IdType.NAME: "name",
+    IdType.IP: "ip",
+    IdType.CRYPTO: "crypto",
 }
+
+#: Not an identifier type — image, video and document tooling is useful in
+#: any investigation, so it is offered alongside whatever you are holding
+#: rather than being unreachable because nobody can "search" a photo.
+ALWAYS_USEFUL = "media"
 
 
 @lru_cache(maxsize=1)
@@ -86,7 +93,8 @@ def _rank(entry: dict) -> tuple:
     )
 
 
-def leads_for(identifiers, limit: int = 10, include_active: bool = True) -> dict:
+def leads_for(identifiers, limit: int = 10, include_active: bool = True,
+              include_media: bool = False) -> dict:
     """Resources that accept the identifier types we are holding.
 
     Returns {bucket: [entry, …]} ordered by what is cheapest to try.
@@ -98,6 +106,8 @@ def leads_for(identifiers, limit: int = 10, include_active: bool = True) -> dict
             wanted.add(bucket)
     if not wanted:
         return {}
+    if include_media:
+        wanted.add(ALWAYS_USEFUL)
 
     out: dict[str, list[dict]] = {}
     for bucket in sorted(wanted):

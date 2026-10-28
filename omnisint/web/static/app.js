@@ -22,7 +22,48 @@ const state = {
   rows: [], selected: null, sort: { key: "confidence", dir: -1 }, poll: null,
   // Accounts the operator stacked into one identity, keyed by URL||platform.
   pins: new Map(), leads: null, leadsAttribution: "",
+  filter: "", quick: null,
 };
+
+/* A display filter, in the Wireshark sense: the grid is the whole story, so
+   narrowing it beats scrolling three hundred rows. Matching is plain
+   substring across every rendered cell — an expression language would be
+   more precise and far less likely to be used. */
+const QUICK = {
+  subject:   r => r.attribution_level === "same person" || r.pinned,
+  others:    r => r.attribution_level === "likely different person",
+  confirmed: r => r.level === "confirmed",
+  data:      r => r.metadata && Object.keys(r.metadata).length > 0,
+};
+
+function rowText(row, columns) {
+  return columns.map(c => {
+    const v = c.render ? c.render(row) : row[c.key];
+    return v instanceof Node ? v.textContent : String(v ?? "");
+  }).join(" ").toLowerCase();
+}
+
+function applyFilter(rows, columns) {
+  let out = rows;
+  const quick = QUICK[state.quick];
+  if (quick) out = out.filter(quick);
+  const needle = state.filter.trim().toLowerCase();
+  if (needle) {
+    const terms = needle.split(/\s+/);
+    out = out.filter(r => {
+      const hay = rowText(r, columns);
+      return terms.every(t => hay.includes(t));
+    });
+  }
+  return out;
+}
+
+function showCount(shown, total) {
+  const el_ = $("fcount");
+  el_.textContent = shown === total ? `${total} rows`
+                                    : `${shown} of ${total} rows`;
+  $("filter").classList.toggle("nomatch", total > 0 && shown === 0);
+}
 
 const pinKey = (a) => (a.url || a.platform || "").toLowerCase();
 const isPinned = (a) => state.pins.has(pinKey(a));
@@ -157,7 +198,15 @@ function renderTabs() {
 /* -- grid --------------------------------------------------------------- */
 function grid(columns, rows, onSelect, rowClass) {
   const host = $("grid"); clear(host);
-  if (!rows.length) { host.appendChild(el("div", "empty", "Nothing here.")); return; }
+  const total = rows.length;
+  rows = applyFilter(rows, columns);
+  showCount(rows.length, total);
+  if (!total) { host.appendChild(el("div", "empty", "Nothing here.")); return; }
+  if (!rows.length) {
+    host.appendChild(el("div", "empty",
+      `No row matches that filter. ${total} hidden — press Clear or Esc.`));
+    return;
+  }
 
   const table = el("table", "grid");
   const head = el("tr");
@@ -392,45 +441,38 @@ function viewFound() {
 }
 
 function viewLeads() {
-  const host = $("grid"); clear(host);
   const note = el("div", "summary");
   note.appendChild(el("div", "sumhead", "Where to look by hand"));
   note.appendChild(el("div", null,
     "Omnisint never queries these — it points you at them. Resources marked "
-    + "“touches the subject” reach their own infrastructure when you use them, "
-    + "which is not passive."));
+    + "\u201ctouches the subject\u201d reach their own infrastructure when you use "
+    + "them, which is not passive."));
   if (state.leadsAttribution)
     note.appendChild(el("div", "sumbasis", "Catalogue: " + state.leadsAttribution));
-  host.appendChild(note);
 
   const rows = [];
   (state.leads || []).forEach(b => b.items.forEach(e =>
-    rows.push({ ...e, bucket: b.bucket, warn: (e.flags || []).join(", ") })));
-  if (!rows.length) {
-    host.appendChild(el("div", "empty",
-      "No catalogued resource takes these identifier types."));
-    return;
-  }
-  const table = el("table", "grid");
-  const head = el("tr");
-  ["For", "Resource", "URL", "Notes", "Good for"].forEach(h => head.appendChild(el("th", null, h)));
-  table.appendChild(head);
-  rows.forEach(r => {
-    const tr = el("tr", (r.flags || []).includes("touches the subject") ? "other" : "possible");
-    tr.appendChild(el("td", null, r.bucket));
-    tr.appendChild(el("td", null, r.name));
-    const td = el("td"); td.appendChild(link(r.url)); tr.appendChild(td);
-    tr.appendChild(el("td", null, r.warn || "free · passive"));
-    tr.appendChild(el("td", null, r.best_for || r.desc || ""));
-    tr.onclick = () => detail(`Lead — ${r.name}`,
+    rows.push({ ...e, bucket: b.bucket, warn: (e.flags || []).join(", ") || "free · passive",
+                good: e.best_for || e.desc || "" })));
+
+  // Routed through grid() rather than hand-built, so the display filter,
+  // sorting and row selection work here exactly as they do everywhere else.
+  grid([
+    { key: "bucket", label: "For", width: "80px" },
+    { key: "name", label: "Resource", width: "210px" },
+    { key: "url", label: "URL", render: r => link(r.url), sortable: false },
+    { key: "warn", label: "Notes", width: "230px" },
+    { key: "good", label: "Good for" },
+  ], rows, r => detail(`Lead — ${r.name}`,
       [["url", r.url], ["category", r.category], ["pricing", r.pricing],
        ["opsec", r.opsec]].concat(r.opsec_note ? [["opsec note", r.opsec_note]] : []),
       [{ text: r.desc || "", tone: "" },
        ...((r.flags || []).includes("touches the subject")
-          ? [{ text: "Using this reaches the subject's infrastructure.", tone: "warn" }] : [])]);
-    table.appendChild(tr);
-  });
-  host.appendChild(table);
+          ? [{ text: "Using this reaches the subject's infrastructure.", tone: "warn" }]
+          : [])]),
+    r => ((r.flags || []).includes("touches the subject") ? "other" : "possible"));
+
+  $("grid").insertBefore(note, $("grid").firstChild);
 }
 
 function viewInfra() {
@@ -511,6 +553,7 @@ const VIEWS = { accounts: viewAccounts, identity: viewIdentity, personas: viewPe
 /* -- render ------------------------------------------------------------- */
 function render() {
   renderTabs();
+  syncQuickButtons();
   // Manual leads do not need a scan — looking things up by hand is often
   // what you do *instead* of scanning, so this view must work from an empty
   // session rather than waiting for results that may never come.
@@ -692,7 +735,7 @@ async function loadLeads() {
   if (!raw) { state.leads = []; return; }
   try {
     const r = await api("/api/leads", { method: "POST",
-      body: JSON.stringify({ targets: raw, limit: 12 }) });
+      body: JSON.stringify({ targets: raw, limit: 12, media: true }) });
     state.leads = r.buckets; state.leadsAttribution = r.attribution;
   } catch { state.leads = []; }
   render();
@@ -739,6 +782,61 @@ async function startScan(withPins, force) {
 }
 
 /* -- wiring ------------------------------------------------------------- */
+/* -- filter wiring ------------------------------------------------------- */
+//: Quick filters read account fields, so they are meaningless on tabs whose
+//: rows have none. Disabling them beats silently hiding every row.
+const QUICK_TABS = new Set(["accounts"]);
+
+function syncQuickButtons() {
+  const usable = QUICK_TABS.has(state.tab);
+  for (const id of ["qfSubject", "qfOthers", "qfConfirmed", "qfData"]) {
+    $(id).disabled = !usable;
+    $(id).title = usable ? $(id).title.replace(/^Not available.*/, "")
+                         : "Not available on this tab — these filter accounts";
+  }
+  if (!usable && state.quick) {
+    state.quick = null;
+    for (const id of ["qfSubject", "qfOthers", "qfConfirmed", "qfData"])
+      $(id).classList.remove("on");
+  }
+}
+
+function setQuick(name) {
+  if (!QUICK_TABS.has(state.tab)) return;
+  state.quick = state.quick === name ? null : name;
+  for (const [key, id] of Object.entries({
+    subject: "qfSubject", others: "qfOthers",
+    confirmed: "qfConfirmed", data: "qfData" })) {
+    $(id).classList.toggle("on", state.quick === key);
+  }
+  render();
+}
+$("filter").addEventListener("input", e => {
+  state.filter = e.target.value;
+  render();
+});
+$("filter").addEventListener("keydown", e => {
+  if (e.key === "Escape") { e.target.value = ""; state.filter = ""; render(); }
+});
+$("qfSubject").onclick = () => setQuick("subject");
+$("qfOthers").onclick = () => setQuick("others");
+$("qfConfirmed").onclick = () => setQuick("confirmed");
+$("qfData").onclick = () => setQuick("data");
+$("qfClear").onclick = () => {
+  $("filter").value = ""; state.filter = ""; state.quick = null;
+  ["qfSubject", "qfOthers", "qfConfirmed", "qfData"].forEach(
+    i => $(i).classList.remove("on"));
+  render();
+};
+addEventListener("keydown", e => {
+  // "/" focuses the filter, the way it does in a pager — but not while the
+  // operator is typing a target into the scan box.
+  if (e.key === "/" && document.activeElement !== $("filter")
+      && document.activeElement !== $("targets")) {
+    e.preventDefault(); $("filter").focus(); $("filter").select();
+  }
+});
+
 $("rescan").onclick = () => startScan(true);
 $("clearPins").onclick = () => { state.pins.clear(); renderPins(); render(); };
 $("go").onclick = () => startScan(false);

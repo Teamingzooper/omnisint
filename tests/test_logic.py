@@ -7,9 +7,9 @@ from omnisint.correlate import (_is_handle_echo, _looks_like_page_title,
 from omnisint.models import IdType, detect_type
 
 
-def check(label, cond):
-    assert cond, label
-    print(f"  ok  {label}")
+def check(label, cond, detail=""):
+    assert cond, f"{label}{f'  [{detail}]' if detail else ''}"
+    print(f"  ok  {label}" + (f"  [{detail}]" if detail else ""))
 
 
 print("identifier detection")
@@ -20,6 +20,19 @@ check("url", detect_type("https://x.com/j") is IdType.URL)
 check("name", detect_type("John Doe") is IdType.NAME)
 check("phone", detect_type("+1 415 555 0100") is IdType.PHONE)
 check("email beats domain", detect_type("a@b.co") is IdType.EMAIL)
+
+check("ipv4", detect_type("8.8.8.8") is IdType.IP)
+check("ipv4 cidr", detect_type("192.168.1.0/24") is IdType.IP)
+check("ipv6", detect_type("2001:4860:4860::8888") is IdType.IP)
+check("an out-of-range octet is not an ip", detect_type("256.1.1.1") is not IdType.IP)
+check("ethereum address", detect_type("0x742d35Cc6634C0532925a3b844Bc454e4438f44e")
+      is IdType.CRYPTO)
+check("bitcoin legacy address",
+      detect_type("1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa") is IdType.CRYPTO)
+check("bitcoin bech32 address",
+      detect_type("bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq") is IdType.CRYPTO)
+check("an ordinary handle is not mistaken for a wallet",
+      detect_type("jdoe") is IdType.USERNAME)
 
 print("platform normalisation")
 check("case", normalize_platform("Github") == normalize_platform("GitHub"))
@@ -361,11 +374,36 @@ check("a capped tool cannot reach the global limit",
 
 # --- OSINT Framework catalogue --------------------------------------------
 print("\nOSINT Framework catalogue")
-from omnisint.catalog import (FEATURED, attribution, counts, flags,
+from omnisint.catalog import (FEATURED, TYPE_MAP, attribution, counts, flags,
                               leads_for, _catalog)
 
 _cat = _catalog()
 check("catalogue ships with the package", len(_cat["resources"]) > 500)
+
+# Every bucket must be reachable from some identifier type. 392 resources
+# once shipped that nothing could ever route to, because there was no
+# IdType for ip, crypto or media.
+_buckets = {t for r in _cat["resources"] for t in r["types"]}
+_routable = set(TYPE_MAP.values()) | {"media"}
+check("no bucket is unreachable", _buckets <= _routable,
+      f"orphaned: {sorted(_buckets - _routable)}")
+check("ip resources route from an ip",
+      "ip" in leads_for([Identifier.parse("8.8.8.8")]))
+check("crypto resources route from a wallet address",
+      "crypto" in leads_for([Identifier.parse(
+          "0x742d35Cc6634C0532925a3b844Bc454e4438f44e")]))
+check("media tooling is offered alongside any identifier",
+      "media" in leads_for([Identifier.parse("jdoe")], include_media=True))
+check("but not forced on when unasked",
+      "media" not in leads_for([Identifier.parse("jdoe")]))
+
+# An IP must be scannable, not merely catalogued.
+from omnisint.adapters.native import InfrastructureAdapter as _Infra
+from omnisint.adapters.spiderfoot import SpiderFootAdapter as _SF
+check("the infrastructure adapter takes an ip", IdType.IP in _Infra.accepts)
+check("spiderfoot takes an ip", IdType.IP in _SF.accepts)
+check("an ip reaches at least one backend",
+      bool(_Engine(_SO()).plan([Identifier.parse("8.8.8.8")])))
 check("it credits the upstream project",
       "Nordine" in attribution() and "lockfale" in attribution())
 check("every resource has a url and at least one type",

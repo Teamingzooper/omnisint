@@ -44,20 +44,6 @@
    "opsec_note": "Public Monero blockchain browsing; inherent privacy from Monero's ring signature design limits address-level tracing."
   },
   {
-   "name": "OFAC Sanctions List Search",
-   "url": "https://sanctionssearch.ofac.treas.gov/",
-   "category": "Blockchain & Cryptocurrency",
-   "types": [
-    "crypto",
-    "name"
-   ],
-   "opsec": "passive",
-   "pricing": "free",
-   "desc": "Official U.S. Treasury Department tool for searching the Specially Designated Nationals (SDN) list and consolidated sanctions lists using fuzzy-logic…",
-   "best_for": "Checking against U.S. government sanctions list (SDN and consolidated lists)",
-   "opsec_note": "Official government database; searches are not logged against user identity but accessing the government website may be monitored."
-  },
-  {
    "name": "Orbit (T)",
    "url": "https://github.com/s0md3v/Orbit",
    "category": "Blockchain & Cryptocurrency",
@@ -96,21 +82,6 @@
    "desc": "Minimal Monero blockchain explorer with no JavaScript, cookies, or tracking; available via Tor with focus on privacy and open-source design.",
    "best_for": "Monero transaction lookup with privacy-first design (Tor-accessible)",
    "opsec_note": "No tracking or analytics; Tor-accessible for anonymous browsing. Inherent Monero privacy limits address tracing."
-  },
-  {
-   "name": "Arkham Intelligence",
-   "url": "https://intel.arkm.com/",
-   "category": "Blockchain & Cryptocurrency",
-   "types": [
-    "crypto"
-   ],
-   "opsec": "active",
-   "pricing": "freemium",
-   "desc": "AI-powered blockchain intelligence platform mapping 300+ million address labels and 150K+ entity pages using proprietary Ultra system for entity dean…",
-   "best_for": "Institutional-grade cryptocurrency entity mapping and fund-flow analysis",
-   "registration": true,
-   "api": true,
-   "opsec_note": "Aggregates on-chain and off-chain intelligence; registered users leave account footprint. Government and institutional adoption."
   },
   {
    "name": "Bitquery Explorer",
@@ -251,6 +222,20 @@
    "opsec_note": "Subset of Etherscan; same passive analysis of public Ethereum NFT data."
   },
   {
+   "name": "Iris",
+   "url": "https://iriscan.app/",
+   "category": "Blockchain & Cryptocurrency",
+   "types": [
+    "crypto"
+   ],
+   "opsec": "passive",
+   "pricing": "freemium",
+   "desc": "Blockchain investigation tool for Solana, EVM chains, Bitcoin and Tron: shows who funded a wallet and where its money went, with labels from 640,000+…",
+   "best_for": "Identifying who is behind a wallet and following funds across mixers and bridges",
+   "api": true,
+   "opsec_note": "Reads public blockchain data only. No registration for the first 10 checks, then a free account. Offers an API and an MCP server."
+  },
+  {
    "name": "MetaSleuth",
    "url": "https://metasleuth.io/",
    "category": "Blockchain & Cryptocurrency",
@@ -296,7 +281,8 @@
    "url": "https://www.walletexplorer.com/",
    "category": "Blockchain & Cryptocurrency",
    "types": [
-    "crypto"
+    "crypto",
+    "name"
    ],
    "opsec": "passive",
    "pricing": "freemium",
@@ -775,7 +761,8 @@
    "url": "https://github.com/initstring/cloud_enum",
    "category": "Cloud Infrastructure",
    "types": [
-    "domain"
+    "domain",
+    "name"
    ],
    "opsec": "active",
    "pricing": "free",
@@ -854,6 +841,20 @@
    "best_for": "Certificate search, subdomain discovery via CT logs, detecting unauthorized certificates",
    "api": true,
    "opsec_note": "Queries public Certificate Transparency logs; does not contact the target domain."
+  },
+  {
+   "name": "CSIS Warfare, Irregular Threats, and Terrorism Program",
+   "url": "https://www.csis.org/programs/warfare-irregular-threats-and-terrorism-program",
+   "category": "Cyber Threat Intelligence",
+   "types": [
+    "domain",
+    "ip"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "Research program analyzing terrorism, cyber threats, and irregular warfare.",
+   "best_for": "Terrorism and threat analysis research",
+   "opsec_note": "Passive access to public research"
   },
   {
    "name": "DeepfakeDetector",
@@ -1110,7 +1111,8 @@
    "url": "https://findsubdomains.com/",
    "category": "Domain Name",
    "types": [
-    "domain"
+    "domain",
+    "name"
    ],
    "opsec": "passive",
    "pricing": "free",
@@ -1198,7 +1200,8 @@
    "url": "https://github.com/RhinoSecurityLabs/GCPBucketBrute",
    "category": "Cloud Infrastructure",
    "types": [
-    "domain"
+    "domain",
+    "name"
    ],
    "opsec": "active",
    "pricing": "free",
@@ -1235,6 +1238,20 @@
    "best_for": "Scanning git repositories for hardcoded secrets, API keys, and leaked credentials",
    "local_install": true,
    "opsec_note": "Remote scans require cloning the target repository; clone activity may be logged by the hosting platform."
+  },
+  {
+   "name": "Global Terrorism Database",
+   "url": "https://www.start.umd.edu/research-projects/global-terrorism-database-gtd",
+   "category": "Cyber Threat Intelligence",
+   "types": [
+    "domain",
+    "ip"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "Academic database of terrorist attacks maintained by START at University of Maryland.",
+   "best_for": "Terrorism research and analysis",
+   "opsec_note": "Passive academic research database"
   },
   {
    "name": "goblob (T)",
@@ -1483,6 +1500,20 @@
    "opsec_note": "Primarily local processing; risk profile depends on source websites being queried."
   },
   {
+   "name": "Institute for Strategic Dialogue",
+   "url": "https://www.isdglobal.org/",
+   "category": "Cyber Threat Intelligence",
+   "types": [
+    "domain",
+    "ip"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "International research organization studying conflict, extremism, and social change.",
+   "best_for": "Extremism and conflict research",
+   "opsec_note": "Passive access to public research"
+  },
+  {
    "name": "International Domain Name Conversion Tool",
    "url": "https://mct.verisign-grs.com/",
    "category": "Domain Name",
@@ -1510,6 +1541,36 @@
    "opsec_note": "Queries archived data. Does not contact the target. Searches may be logged by the Internet Archive."
   },
   {
+   "name": "IOC Parser",
+   "url": "https://github.com/armbues/ioc_parser",
+   "category": "Cyber Threat Intelligence",
+   "types": [
+    "domain",
+    "ip"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "Python library for extracting and parsing IOCs from raw text and security reports.",
+   "best_for": "IOC extraction from reports",
+   "local_install": true,
+   "opsec_note": "Local text analysis without network interaction"
+  },
+  {
+   "name": "iocextract (T)",
+   "url": "https://github.com/InQuest/iocextract",
+   "category": "Cyber Threat Intelligence",
+   "types": [
+    "domain",
+    "ip"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "Python library and CLI tool for rapid IOC extraction with support for obfuscated indicators.",
+   "best_for": "IOC extraction with deobfuscation",
+   "local_install": true,
+   "opsec_note": "Local text parsing without network interaction"
+  },
+  {
    "name": "IP / DNS Leak Detection",
    "url": "https://ipleak.net/",
    "category": "OpSec",
@@ -1534,6 +1595,22 @@
    "desc": "IP logging and URL shortening service tracking visitor IP, location, and browser data.",
    "best_for": "Track visitor IPs through shortened links",
    "opsec_note": "Tracking service; ethical and legal concerns apply."
+  },
+  {
+   "name": "Jager",
+   "url": "https://github.com/sroberts/jager",
+   "category": "Cyber Threat Intelligence",
+   "types": [
+    "domain",
+    "ip"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "Python IOC aggregation and analysis tool for collecting and organizing security indicators.",
+   "best_for": "IOC collection and aggregation",
+   "local_install": true,
+   "api": true,
+   "opsec_note": "Local processing of public feeds"
   },
   {
    "name": "Keyword Density",
@@ -1643,6 +1720,22 @@
    "opsec_note": "Queries curated malware domain database; passive lookup only"
   },
   {
+   "name": "Malware Information Sharing Platform",
+   "url": "https://www.misp-project.org/",
+   "category": "Cyber Threat Intelligence",
+   "types": [
+    "domain",
+    "ip"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "Open-source platform for collecting, storing, and sharing cyber threat indicators and malware data.",
+   "best_for": "Threat intelligence sharing",
+   "local_install": true,
+   "api": true,
+   "opsec_note": "Local platform for passive sharing"
+  },
+  {
    "name": "Meerkat (T)",
    "url": "https://meerkatapp.co/",
    "category": "Mobile OSINT",
@@ -1688,6 +1781,50 @@
    "opsec_note": "Client-side utility; still follow account and platform ToS constraints."
   },
   {
+   "name": "Mitre TTPs",
+   "url": "https://attack.mitre.org/",
+   "category": "Cyber Threat Intelligence",
+   "types": [
+    "domain",
+    "ip"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "MITRE ATT&CK framework: globally-accessible knowledge base of adversary tactics and techniques.",
+   "best_for": "Threat modeling and TTP analysis",
+   "api": true,
+   "opsec_note": "Passive research of public threat intelligence"
+  },
+  {
+   "name": "mlsecproject / combine",
+   "url": "https://github.com/mlsecproject/combine",
+   "category": "Cyber Threat Intelligence",
+   "types": [
+    "domain",
+    "ip"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "Tool for gathering and normalizing threat intelligence feeds from public sources.",
+   "best_for": "Threat feed aggregation",
+   "local_install": true,
+   "opsec_note": "Local processing of public feeds"
+  },
+  {
+   "name": "Mr.Looquer IOC Feed - 1st Dual Stack Threat Feed",
+   "url": "https://iocfeed.mrlooquer.com/",
+   "category": "Cyber Threat Intelligence",
+   "types": [
+    "domain",
+    "ip"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "Threat intelligence feed providing IOC data with IPv4/IPv6 dual stack support.",
+   "best_for": "IOC threat feed access",
+   "opsec_note": "Passive threat feed consumption"
+  },
+  {
    "name": "Onioff",
    "url": "https://github.com/k4m4/onioff",
    "category": "Dark Web",
@@ -1719,7 +1856,8 @@
    "url": "https://apps.apple.com/us/app/osint-researcher/id6747302251",
    "category": "Mobile OSINT",
    "types": [
-    "domain"
+    "domain",
+    "name"
    ],
    "opsec": "passive",
    "pricing": "free",
@@ -1785,6 +1923,20 @@
    "opsec_note": "Passive lookup of community-reported database"
   },
   {
+   "name": "RAND Terrorism Research",
+   "url": "https://www.rand.org/topics/terrorism.html",
+   "category": "Cyber Threat Intelligence",
+   "types": [
+    "domain",
+    "ip"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "RAND Corporation's collection of research and analysis on terrorism topics.",
+   "best_for": "Terrorism research and policy analysis",
+   "opsec_note": "Passive access to public research"
+  },
+  {
    "name": "Redirect Detective",
    "url": "https://redirectdetective.com/",
    "category": "Domain Name",
@@ -1796,6 +1948,20 @@
    "desc": "Web tool that traces URL redirect chains and final destinations across multi-hop redirects.",
    "best_for": "Understanding redirect paths and affiliate or cloaking behavior",
    "opsec_note": "Redirect checks are initiated through the service, limiting direct local target interaction."
+  },
+  {
+   "name": "REScure Cyber Threat Intelligence Project",
+   "url": "https://rescure.me/",
+   "category": "Cyber Threat Intelligence",
+   "types": [
+    "domain",
+    "ip"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "Community-driven cyber threat intelligence project providing IOC feeds and research.",
+   "best_for": "Threat intelligence feeds",
+   "opsec_note": "Passive threat feed access"
   },
   {
    "name": "ROADtools (T)",
@@ -1865,6 +2031,20 @@
    "desc": "Free malware and spyware tracking domain blacklist maintained by security community for 18+ years.",
    "best_for": "Malware and spyware domain research",
    "opsec_note": "Community-maintained research database; passive lookup only"
+  },
+  {
+   "name": "SecAI.ai",
+   "url": "https://secai.ai/research",
+   "category": "Cyber Threat Intelligence",
+   "types": [
+    "domain",
+    "ip"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "Security research platform providing threat intelligence, vulnerability analysis, and cybersecurity insights with focus on emerging threats.",
+   "best_for": "Security research and threat intelligence",
+   "opsec_note": "Passive threat intelligence platform"
   },
   {
    "name": "SecLists DNS Subdomains (T)",
@@ -1963,6 +2143,20 @@
    "desc": "SNAP repository of graph/network datasets spanning social networks, web graphs, and communication systems.",
    "best_for": "Network analysis modeling and graph-based OSINT experimentation",
    "opsec_note": "Public academic data access only; no interaction with investigation targets."
+  },
+  {
+   "name": "START Consortium for the Study of Terrorism and Responses to Terrorism",
+   "url": "https://www.start.umd.edu/",
+   "category": "Cyber Threat Intelligence",
+   "types": [
+    "domain",
+    "ip"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "National Consortium conducting research on terrorism causes, consequences, and responses.",
+   "best_for": "Terrorism research and education",
+   "opsec_note": "Passive academic research access"
   },
   {
    "name": "StatsCrop",
@@ -2067,7 +2261,8 @@
    "category": "Email Address",
    "types": [
     "domain",
-    "email"
+    "email",
+    "name"
    ],
    "opsec": "passive",
    "pricing": "free",
@@ -2091,6 +2286,22 @@
    "local_install": true,
    "degraded": true,
    "opsec_note": "Scrapes Threads directly; depends on site structure and may trigger rate limiting."
+  },
+  {
+   "name": "ThreatIngestor (T)",
+   "url": "https://github.com/InQuest/ThreatIngestor",
+   "category": "Cyber Threat Intelligence",
+   "types": [
+    "domain",
+    "ip"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "Modular IOC ingestion platform for automated threat indicator extraction from multiple sources.",
+   "best_for": "Automated IOC collection and enrichment",
+   "local_install": true,
+   "api": true,
+   "opsec_note": "Passive aggregation of public threat feeds"
   },
   {
    "name": "ThreatMiner.org",
@@ -2622,7 +2833,8 @@
    "url": "https://www.aihitdata.com/",
    "category": "Business Records",
    "types": [
-    "domain"
+    "domain",
+    "name"
    ],
    "opsec": "passive",
    "pricing": "freemium",
@@ -2646,6 +2858,19 @@
    "best_for": "Interactive malware analysis with real-time system interaction",
    "api": true,
    "opsec_note": "Interactive analysis leaves traces; free tier limited to 3 public analyses/day; private mode in paid plans"
+  },
+  {
+   "name": "Australian Cyber Security Centre",
+   "url": "https://www.cyber.gov.au/",
+   "category": "Cyber Threat Intelligence",
+   "types": [
+    "domain",
+    "ip"
+   ],
+   "opsec": "unknown",
+   "pricing": "unknown",
+   "desc": "",
+   "best_for": ""
   },
   {
    "name": "BinaryEdge (R)",
@@ -2690,6 +2915,19 @@
    "local_install": true,
    "api": true,
    "opsec_note": "Full active scanning; generates extensive server logs and may trigger WAF/IDS alerts"
+  },
+  {
+   "name": "Canadian Centre for Cyber Security",
+   "url": "https://www.cyber.gc.ca/",
+   "category": "Cyber Threat Intelligence",
+   "types": [
+    "domain",
+    "ip"
+   ],
+   "opsec": "unknown",
+   "pricing": "unknown",
+   "desc": "",
+   "best_for": ""
   },
   {
    "name": "Carnet.ai",
@@ -2768,6 +3006,32 @@
    "opsec_note": "Searches provider datasets rather than scanning targets directly from analyst infrastructure."
   },
   {
+   "name": "CVE - MITRE",
+   "url": "https://www.cve.org/",
+   "category": "Cyber Threat Intelligence",
+   "types": [
+    "domain",
+    "ip"
+   ],
+   "opsec": "unknown",
+   "pricing": "unknown",
+   "desc": "",
+   "best_for": ""
+  },
+  {
+   "name": "CVE Details",
+   "url": "https://www.cvedetails.com/",
+   "category": "Cyber Threat Intelligence",
+   "types": [
+    "domain",
+    "ip"
+   ],
+   "opsec": "unknown",
+   "pricing": "unknown",
+   "desc": "",
+   "best_for": ""
+  },
+  {
    "name": "Daily DNS Changes",
    "url": "https://dailychanges.domaintools.com/",
    "category": "Domain Name",
@@ -2825,6 +3089,58 @@
    "registration": true,
    "api": true,
    "opsec_note": "Queries threat intelligence databases without contacting the target."
+  },
+  {
+   "name": "Default Password Lookup Utility",
+   "url": "https://fortypoundhead.com/tools_dpw.asp",
+   "category": "Cyber Threat Intelligence",
+   "types": [
+    "domain",
+    "ip"
+   ],
+   "opsec": "unknown",
+   "pricing": "unknown",
+   "desc": "",
+   "best_for": ""
+  },
+  {
+   "name": "Default Passwords DB",
+   "url": "https://cirt.net/passwords/",
+   "category": "Cyber Threat Intelligence",
+   "types": [
+    "domain",
+    "ip"
+   ],
+   "opsec": "unknown",
+   "pricing": "unknown",
+   "desc": "",
+   "best_for": ""
+  },
+  {
+   "name": "Default passwords list",
+   "url": "https://default-password.info/",
+   "category": "Cyber Threat Intelligence",
+   "types": [
+    "domain",
+    "ip"
+   ],
+   "opsec": "unknown",
+   "pricing": "unknown",
+   "desc": "",
+   "best_for": ""
+  },
+  {
+   "name": "Default Router Passwords",
+   "url": "https://www.routerpasswords.com/",
+   "category": "Cyber Threat Intelligence",
+   "types": [
+    "domain",
+    "ip"
+   ],
+   "opsec": "unknown",
+   "pricing": "unknown",
+   "desc": "",
+   "best_for": ""
   },
   {
    "name": "Deteque (R)",
@@ -2885,6 +3201,19 @@
    "opsec_note": "Queries aggregated domain data; does not probe the target directly."
   },
   {
+   "name": "Exploit DB",
+   "url": "https://www.exploit-db.com/",
+   "category": "Cyber Threat Intelligence",
+   "types": [
+    "domain",
+    "ip"
+   ],
+   "opsec": "unknown",
+   "pricing": "unknown",
+   "desc": "",
+   "best_for": ""
+  },
+  {
    "name": "Flickr",
    "url": "https://www.flickr.com/",
    "category": "Images / Videos / Docs",
@@ -2928,6 +3257,19 @@
    "best_for": "Digital evidence preservation, chain-of-custody documentation, court-ready OSINT reporting",
    "registration": true,
    "opsec_note": "Evidence collection focus; requires proper methodology for investigative and legal contexts."
+  },
+  {
+   "name": "Hashes.org",
+   "url": "https://hashes.org/",
+   "category": "Cyber Threat Intelligence",
+   "types": [
+    "domain",
+    "ip"
+   ],
+   "opsec": "unknown",
+   "pricing": "unknown",
+   "desc": "",
+   "best_for": ""
   },
   {
    "name": "Hybrid Analysis",
@@ -3056,6 +3398,54 @@
    "opsec_note": "Profile views may be visible to the target; use private/restricted browsing mode to reduce visibility."
   },
   {
+   "name": "Malpedia",
+   "url": "https://malpedia.caad.fkie.fraunhofer.de/",
+   "category": "Cyber Threat Intelligence",
+   "types": [
+    "domain",
+    "ip"
+   ],
+   "opsec": "passive",
+   "pricing": "freemium",
+   "desc": "Free collaborative malware database from Fraunhofer FKIE with 600+ malware families.",
+   "best_for": "Malware family identification",
+   "registration": true,
+   "api": true,
+   "opsec_note": "Passive malware research database"
+  },
+  {
+   "name": "Maltiverse",
+   "url": "https://maltiverse.com/",
+   "category": "Cyber Threat Intelligence",
+   "types": [
+    "domain",
+    "ip"
+   ],
+   "opsec": "passive",
+   "pricing": "freemium",
+   "desc": "Threat intelligence platform aggregating 100+ sources with real-time IOC scoring.",
+   "best_for": "IOC aggregation and scoring",
+   "registration": true,
+   "api": true,
+   "opsec_note": "Passive aggregation of threat data"
+  },
+  {
+   "name": "Malware Patrol",
+   "url": "https://www.malwarepatrol.net/",
+   "category": "Cyber Threat Intelligence",
+   "types": [
+    "domain",
+    "ip"
+   ],
+   "opsec": "passive",
+   "pricing": "freemium",
+   "desc": "Threat intelligence feed service providing malware samples, URLs, domains, and IOC data.",
+   "best_for": "Malware IOC and feed intelligence",
+   "registration": true,
+   "api": true,
+   "opsec_note": "Passive consumption of threat feeds"
+  },
+  {
    "name": "MalwareURL (R)",
    "url": "https://www.malwareurl.com/index.php",
    "category": "Domain Name",
@@ -3127,6 +3517,19 @@
    "opsec_note": "Searches NerdyData's pre-built index; no direct contact with target websites."
   },
   {
+   "name": "NVD - NIST",
+   "url": "https://nvd.nist.gov/",
+   "category": "Cyber Threat Intelligence",
+   "types": [
+    "domain",
+    "ip"
+   ],
+   "opsec": "unknown",
+   "pricing": "unknown",
+   "desc": "",
+   "best_for": ""
+  },
+  {
    "name": "Onyphe",
    "url": "https://www.onyphe.io/",
    "category": "IP & MAC Address",
@@ -3140,6 +3543,19 @@
    "registration": true,
    "api": true,
    "opsec_note": "Passive intelligence from public sources."
+  },
+  {
+   "name": "Open Sez Me Default Passwords",
+   "url": "https://open-sez.me/",
+   "category": "Cyber Threat Intelligence",
+   "types": [
+    "domain",
+    "ip"
+   ],
+   "opsec": "unknown",
+   "pricing": "unknown",
+   "desc": "",
+   "best_for": ""
   },
   {
    "name": "OPSWAT Meta Defender",
@@ -3157,11 +3573,38 @@
    "opsec_note": "File uploads required; free community version available with API limits"
   },
   {
+   "name": "OSV Vulnerability Library",
+   "url": "https://osv.dev/list",
+   "category": "Cyber Threat Intelligence",
+   "types": [
+    "domain",
+    "ip"
+   ],
+   "opsec": "unknown",
+   "pricing": "unknown",
+   "desc": "",
+   "best_for": ""
+  },
+  {
+   "name": "OWASP",
+   "url": "https://www.owasp.org/index.php/Main_Page",
+   "category": "Cyber Threat Intelligence",
+   "types": [
+    "domain",
+    "ip"
+   ],
+   "opsec": "unknown",
+   "pricing": "unknown",
+   "desc": "",
+   "best_for": ""
+  },
+  {
    "name": "Owler (R)",
    "url": "https://www.owler.com/corp",
    "category": "Business Records",
    "types": [
     "domain",
+    "name",
     "media"
    ],
    "opsec": "passive",
@@ -3170,6 +3613,19 @@
    "best_for": "Competitive intelligence and company profile research",
    "registration": true,
    "opsec_note": "Queries processed through Owler servers; aggregates from public and crowdsourced data."
+  },
+  {
+   "name": "Packet Storm",
+   "url": "https://packetstormsecurity.com/",
+   "category": "Cyber Threat Intelligence",
+   "types": [
+    "domain",
+    "ip"
+   ],
+   "opsec": "unknown",
+   "pricing": "unknown",
+   "desc": "",
+   "best_for": ""
   },
   {
    "name": "Page2Images (T)",
@@ -3212,6 +3668,19 @@
    "best_for": "Quick browser-based subdomain discovery without local setup",
    "registration": true,
    "opsec_note": "Scanning is performed by Pentest-Tools infrastructure, not directly from your host."
+  },
+  {
+   "name": "Phenoelit Default Password List",
+   "url": "https://phenoelit.org/dpl/dpl.html",
+   "category": "Cyber Threat Intelligence",
+   "types": [
+    "domain",
+    "ip"
+   ],
+   "opsec": "unknown",
+   "pricing": "unknown",
+   "desc": "",
+   "best_for": ""
   },
   {
    "name": "Public Buckets",
@@ -3286,6 +3755,32 @@
    "registration": true,
    "degraded": true,
    "opsec_note": "Operational status requires follow-up verification; treat availability as uncertain."
+  },
+  {
+   "name": "Secunia",
+   "url": "https://secuniaresearch.flexerasoftware.com/community/research/",
+   "category": "Cyber Threat Intelligence",
+   "types": [
+    "domain",
+    "ip"
+   ],
+   "opsec": "unknown",
+   "pricing": "unknown",
+   "desc": "",
+   "best_for": ""
+  },
+  {
+   "name": "SecurityFocus",
+   "url": "https://www.securityfocus.com/bid",
+   "category": "Cyber Threat Intelligence",
+   "types": [
+    "domain",
+    "ip"
+   ],
+   "opsec": "unknown",
+   "pricing": "unknown",
+   "desc": "",
+   "best_for": ""
   },
   {
    "name": "SEMrush",
@@ -3450,6 +3945,19 @@
    "registration": true,
    "api": true,
    "opsec_note": "Performs recurring fetches of target pages based on monitoring cadence."
+  },
+  {
+   "name": "Vulert: Updated Open Source Vulnerability Database",
+   "url": "https://vulert.com/vuln-db",
+   "category": "Cyber Threat Intelligence",
+   "types": [
+    "domain",
+    "ip"
+   ],
+   "opsec": "unknown",
+   "pricing": "unknown",
+   "desc": "",
+   "best_for": ""
   },
   {
    "name": "Wappalyzer",
@@ -3717,7 +4225,8 @@
    "category": "Social Networks",
    "types": [
     "email",
-    "domain"
+    "domain",
+    "name"
    ],
    "opsec": "active",
    "pricing": "free",
@@ -3823,7 +4332,8 @@
    "category": "Domain Name",
    "types": [
     "email",
-    "domain"
+    "domain",
+    "name"
    ],
    "opsec": "passive",
    "pricing": "free",
@@ -3902,6 +4412,7 @@
    "category": "Username",
    "types": [
     "email",
+    "name",
     "username"
    ],
    "opsec": "active",
@@ -3963,6 +4474,7 @@
    "category": "Email Address",
    "types": [
     "email",
+    "name",
     "phone"
    ],
    "opsec": "passive",
@@ -4177,7 +4689,8 @@
    "category": "Domain Name",
    "types": [
     "email",
-    "domain"
+    "domain",
+    "name"
    ],
    "opsec": "passive",
    "pricing": "freemium",
@@ -4925,7 +5438,8 @@
    "url": "https://whois.arin.net/ui/advanced.jsp",
    "category": "Domain Name",
    "types": [
-    "ip"
+    "ip",
+    "name"
    ],
    "opsec": "passive",
    "pricing": "free",
@@ -5235,6 +5749,21 @@
    "opsec_note": "Crowdsourced wireless network data; passive lookup."
   },
   {
+   "name": "#totalhash",
+   "url": "https://totalhash.cymru.com/",
+   "category": "Malicious File Analysis",
+   "types": [
+    "media",
+    "domain"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "Malware Hash Registry that searches against 30+ antivirus databases to validate malware hashes with detection percentage results. Updated daily.",
+   "best_for": "Hash validation against 30+ AV engines with detection percentages",
+   "api": true,
+   "opsec_note": "No registration required; read-only hash lookups leave minimal traces"
+  },
+  {
    "name": "Akana Android Malware",
    "url": "https://akana.mobiseclab.org/",
    "category": "Malicious File Analysis",
@@ -5441,20 +5970,6 @@
    "opsec_note": "Uploaded files are processed by a third-party web service and may be logged."
   },
   {
-   "name": "Companies House",
-   "url": "https://beta.companieshouse.gov.uk/",
-   "category": "Business Records",
-   "types": [
-    "media"
-   ],
-   "opsec": "passive",
-   "pricing": "free",
-   "desc": "Official UK government company registry for England, Wales, Scotland, and Northern Ireland. Provides free access to company filings, officers, and re…",
-   "best_for": "UK company registration details, directors, and filed accounts",
-   "api": true,
-   "opsec_note": "Official government registry; queries do not interact with the target company."
-  },
-  {
    "name": "Corona",
    "url": "https://corona.cast.uark.edu/",
    "category": "Geolocation Tools / Maps",
@@ -5495,6 +6010,34 @@
    "opsec_note": "Queries publicly indexed geotagged photos; no direct interaction with uploaders."
   },
   {
+   "name": "CyberChef",
+   "url": "https://gchq.github.io/CyberChef/",
+   "category": "Encoding / Decoding",
+   "types": [
+    "media"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "GCHQ-maintained browser workbench for chained encoding, decoding, hashing, crypto, and data transformation operations.",
+   "best_for": "Building and replaying multi-step decode and transform recipes",
+   "local_install": true,
+   "api": true,
+   "opsec_note": "Public web app use is convenient, but locally hosted builds are preferred for sensitive data."
+  },
+  {
+   "name": "DDecode - PHP Decoder",
+   "url": "https://ddecode.com/phpdecoder/",
+   "category": "Encoding / Decoding",
+   "types": [
+    "media"
+   ],
+   "opsec": "active",
+   "pricing": "free",
+   "desc": "Online decoder for layered PHP obfuscation chains such as eval, base64, gzinflate, and related encoding wrappers.",
+   "best_for": "Rapid decoding of obfuscated PHP webshell and malware snippets",
+   "opsec_note": "Submitted samples are processed by a third-party server, so sensitive code should be sanitized first."
+  },
+  {
    "name": "Decalage Malware Search",
    "url": "https://decalage.info/en/mwsearch",
    "category": "Malicious File Analysis",
@@ -5520,6 +6063,20 @@
    "best_for": "Research-grade deepfake detection model experimentation",
    "local_install": true,
    "opsec_note": "Local/open-source workflow can run fully offline when self-hosted."
+  },
+  {
+   "name": "DeepfakeBench",
+   "url": "https://github.com/SCLBD/DeepfakeBench",
+   "category": "Disinformation & Media Verification",
+   "types": [
+    "media"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "Benchmark framework for deepfake detection with multiple datasets and standardized evaluation pipelines.",
+   "best_for": "Comparing deepfake detector performance across common benchmarks",
+   "local_install": true,
+   "opsec_note": "Research framework executed locally without required external submissions."
   },
   {
    "name": "DeepSafe",
@@ -5575,6 +6132,19 @@
    "best_for": "Private document analysis, querying sensitive documents without cloud exposure",
    "local_install": true,
    "opsec_note": "Runs entirely locally; no data is sent to external servers, making it suitable for sensitive document analysis."
+  },
+  {
+   "name": "Duke Reporters' Lab",
+   "url": "https://reporterslab.org/",
+   "category": "Disinformation & Media Verification",
+   "types": [
+    "media"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "Duke University journalism lab tracking global fact-checking initiatives, tools, and ecosystem trends.",
+   "best_for": "Finding and benchmarking fact-checking organizations worldwide",
+   "opsec_note": "Read-only research portal with standard website analytics."
   },
   {
    "name": "Epstein Exposed",
@@ -5645,6 +6215,20 @@
    "opsec_note": "Read operations are passive; write actions alter evidence files."
   },
   {
+   "name": "FaceForensics++",
+   "url": "https://www.faceforensics.com/",
+   "category": "Disinformation & Media Verification",
+   "types": [
+    "media"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "Academic deepfake forensics dataset with manipulated video samples, masks, and aligned benchmarks.",
+   "best_for": "Training and benchmarking deepfake detection models",
+   "registration": true,
+   "opsec_note": "Dataset access requires form submission but does not require uploading investigative targets."
+  },
+  {
    "name": "Firefox-debloat",
    "url": "https://github.com/amq/firefox-debloat",
    "category": "OpSec",
@@ -5711,6 +6295,19 @@
    "best_for": "Anonymous file sharing, censorship-resistant publishing, distributed data storage",
    "local_install": true,
    "opsec_note": "Fully decentralized with no central server; anonymization depends on network size and configuration."
+  },
+  {
+   "name": "Functions Online",
+   "url": "https://www.functions-online.com/",
+   "category": "Encoding / Decoding",
+   "types": [
+    "media"
+   ],
+   "opsec": "active",
+   "pricing": "free",
+   "desc": "PHP-oriented online utility suite for common encoding, decoding, hashing, and string-manipulation function tests.",
+   "best_for": "Quick PHP-specific encoding and decoding checks in browser",
+   "opsec_note": "Data is processed server-side, so avoid submitting sensitive payloads directly."
   },
   {
    "name": "GeoSetter",
@@ -5861,6 +6458,20 @@
    "opsec_note": "Open-source passive screenshot tool; captures local screen content only."
   },
   {
+   "name": "iheartxor.py (T)",
+   "url": "https://hooked-on-mnemonics.blogspot.com/p/iheartxor.html",
+   "category": "Encoding / Decoding",
+   "types": [
+    "media"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "Python script for brute-forcing XOR-obfuscated strings within defined boundaries to reveal hidden text in malware samples.",
+   "best_for": "Targeted extraction of XOR-obfuscated strings from binaries",
+   "local_install": true,
+   "opsec_note": "Offline local script execution keeps sample handling under analyst control."
+  },
+  {
    "name": "ImageNet",
    "url": "https://image-net.org/",
    "category": "Images / Videos / Docs",
@@ -5916,6 +6527,20 @@
    "opsec_note": "Local analysis tool; no network communication"
   },
   {
+   "name": "JavaScript Deobfuscator (T)",
+   "url": "https://addons.mozilla.org/en-US/firefox/addon/javascript-deobfuscator/",
+   "category": "Encoding / Decoding",
+   "types": [
+    "media"
+   ],
+   "opsec": "active",
+   "pricing": "free",
+   "desc": "Firefox add-on for inspecting and deobfuscating JavaScript in-browser during page analysis and script review.",
+   "best_for": "Browser-native JavaScript deobfuscation during web investigations",
+   "local_install": true,
+   "opsec_note": "Browser execution context can run page scripts and trackers while analyzing content."
+  },
+  {
    "name": "Jotti's Malware Scanner",
    "url": "https://virusscan.jotti.org/en-US/scan-file",
    "category": "Malicious File Analysis",
@@ -5942,6 +6567,20 @@
    "best_for": "JPEG forensic analysis and tamper signal detection",
    "local_install": true,
    "opsec_note": "Local forensic analysis with no inherent outbound activity."
+  },
+  {
+   "name": "JS Beautifier",
+   "url": "https://beautifier.io/",
+   "category": "Encoding / Decoding",
+   "types": [
+    "media"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "Open-source JavaScript formatter that rewrites minified or obfuscated code into readable, consistently indented source.",
+   "best_for": "Fast readability improvements for packed JavaScript",
+   "api": true,
+   "opsec_note": "Typical use is low-risk code formatting through a public web interface."
   },
   {
    "name": "Kahu Revelo (T)",
@@ -5985,6 +6624,20 @@
    "best_for": "Converting LINE chat exports for downstream analysis workflows",
    "local_install": true,
    "opsec_note": "Processes local chat export files without contacting target services."
+  },
+  {
+   "name": "Malware Analysis Tools",
+   "url": "https://malwareanalysis.tools/",
+   "category": "Malicious File Analysis",
+   "types": [
+    "media",
+    "domain"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "Curated resource and reference guide for malware analysis tools with recommendations for virtualization, safety practices, and tool selection for ana…",
+   "best_for": "Malware analysis tool discovery and best practices reference",
+   "opsec_note": "Reference resource only; no file uploads or active analysis"
   },
   {
    "name": "Malware-Traffic-Analysis.net",
@@ -6110,6 +6763,20 @@
    "opsec_note": "Passive analysis of already-captured traffic."
   },
   {
+   "name": "NoMoreXOR.py (T)",
+   "url": "https://github.com/hiddenillusion/NoMoreXOR",
+   "category": "Encoding / Decoding",
+   "types": [
+    "media"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "Python utility for recovering long XOR keys using character frequency heuristics and YARA-assisted pattern matching.",
+   "best_for": "Recovering long XOR keys in malware binaries",
+   "local_install": true,
+   "opsec_note": "Operates locally and is suitable for isolated malware analysis environments."
+  },
+  {
    "name": "Nox App Player",
    "url": "https://www.bignox.com/",
    "category": "Mobile OSINT",
@@ -6122,20 +6789,6 @@
    "best_for": "Android version testing, app analysis, rooted device simulation",
    "local_install": true,
    "opsec_note": "Detectable via emulator checks; includes obvious emulator markers"
-  },
-  {
-   "name": "OfferUp",
-   "url": "https://offerup.com/",
-   "category": "Classifieds",
-   "types": [
-    "media"
-   ],
-   "opsec": "passive",
-   "pricing": "free",
-   "desc": "US-focused mobile-first marketplace for local buying and selling of goods, with user profiles that may include ratings, reviews, and item listing his…",
-   "best_for": "Local US marketplace investigations, seller profile research, connecting listings to individuals",
-   "google_dork": true,
-   "opsec_note": "Browsing is passive; messaging sellers requires an account and reveals your identity."
   },
   {
    "name": "Office Mal Scanner (T)",
@@ -6291,6 +6944,19 @@
    "opsec_note": "Public academic dataset access; no direct target interaction."
   },
   {
+   "name": "PolitiFact",
+   "url": "https://www.politifact.com/",
+   "category": "Disinformation & Media Verification",
+   "types": [
+    "media"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "Fact-checking publication that rates political claims and documents supporting evidence.",
+   "best_for": "Verifying political statements and tracing source-backed ratings",
+   "opsec_note": "Public read-only use does not interact with targets directly."
+  },
+  {
    "name": "RecruitEm",
    "url": "https://recruitin.net/",
    "category": "Business Records",
@@ -6317,6 +6983,19 @@
    "best_for": "Multi-engine reverse image pivoting from a single browser action",
    "local_install": true,
    "opsec_note": "Client-side extension submits search queries to selected engines only."
+  },
+  {
+   "name": "SciCheck",
+   "url": "https://factcheck.org/scicheck/",
+   "category": "Disinformation & Media Verification",
+   "types": [
+    "media"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "FactCheck.org section dedicated to scientific and health misinformation analysis.",
+   "best_for": "Validating scientific and medical claims in public discourse",
+   "opsec_note": "Standard web consumption with no required interaction with investigated subjects."
   },
   {
    "name": "ScoutSuite (T)",
@@ -6373,6 +7052,47 @@
    "best_for": "Screenshot documentation, screen recording, quick sharing",
    "local_install": true,
    "opsec_note": "Open-source screen capture tool; supports local storage and optional cloud uploads."
+  },
+  {
+   "name": "Snopes",
+   "url": "https://www.snopes.com/",
+   "category": "Disinformation & Media Verification",
+   "types": [
+    "media"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "Long-running debunking site covering rumors, hoaxes, and viral misinformation claims.",
+   "best_for": "Rapid validation of widely shared rumors and internet folklore",
+   "opsec_note": "Public resource; user activity is limited to normal web browsing telemetry."
+  },
+  {
+   "name": "SpiderMonkey (T)",
+   "url": "https://developer.mozilla.org/en-US/docs/Mozilla/Projects/SpiderMonkey",
+   "category": "Encoding / Decoding",
+   "types": [
+    "media"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "Mozilla JavaScript engine used by Firefox and available for standalone execution and analysis in local environments.",
+   "best_for": "Local JavaScript execution and behavior testing without browser UI",
+   "local_install": true,
+   "api": true,
+   "opsec_note": "Runs locally and avoids sending samples to third-party analysis services."
+  },
+  {
+   "name": "Stop Fake Tools",
+   "url": "http://www.stopfake.org/",
+   "category": "Disinformation & Media Verification",
+   "types": [
+    "media"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "Ukrainian anti-disinformation initiative publishing fact-checks, analysis, and media literacy resources.",
+   "best_for": "Investigating Ukraine-focused propaganda and disinformation narratives",
+   "opsec_note": "Read-only consumption of published reporting and educational content."
   },
   {
    "name": "Textfiles.com",
@@ -6457,6 +7177,33 @@
    "opsec_note": "No active probing; public community engagement via social replies."
   },
   {
+   "name": "Verification Handbook",
+   "url": "https://verificationhandbook.com/",
+   "category": "Disinformation & Media Verification",
+   "types": [
+    "media"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "Reference handbook for journalists covering verification methodologies for digital investigations.",
+   "best_for": "Learning repeatable verification workflows for UGC and breaking news",
+   "opsec_note": "Static documentation site with no investigative target interaction."
+  },
+  {
+   "name": "Verification Junkie",
+   "url": "https://verificationjunkie.com/",
+   "category": "Disinformation & Media Verification",
+   "types": [
+    "media"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "Curated directory of verification resources, tools, and training materials for journalists.",
+   "best_for": "Discovering verification tools and practitioner-oriented references",
+   "degraded": true,
+   "opsec_note": "Site has certificate issues; treat access as unstable and verify links before relying on them."
+  },
+  {
    "name": "VirtualBox (T)",
    "url": "https://www.virtualbox.org/",
    "category": "Tools",
@@ -6471,6 +7218,21 @@
    "opsec_note": "No inherent privacy features; privacy depends on guest OS and network configuration"
   },
   {
+   "name": "VirusShare.com",
+   "url": "https://virusshare.com/",
+   "category": "Malicious File Analysis",
+   "types": [
+    "media",
+    "domain"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "Repository of 111+ million live malware samples provided for security researchers, incident responders, forensic analysts, and researchers.",
+   "best_for": "Bulk access to malware sample collections for research and analysis",
+   "registration": true,
+   "opsec_note": "Registration required; no direct execution occurs; passive hash lookup available"
+  },
+  {
    "name": "Visual Genome",
    "url": "https://visualgenome.org/",
    "category": "Archives",
@@ -6483,6 +7245,20 @@
    "best_for": "Image relationship analysis and multimodal data research",
    "api": true,
    "opsec_note": "Academic dataset access with no direct investigative target interaction."
+  },
+  {
+   "name": "VX Vault",
+   "url": "https://vxvault.net/ViriList.php",
+   "category": "Malicious File Analysis",
+   "types": [
+    "media",
+    "domain"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "Active collection of malware samples and related data shared among security researchers and malware analysts for threat intelligence.",
+   "best_for": "Access to active malware sample collections",
+   "opsec_note": "Web-based browsing interface; no registration typically required"
   },
   {
    "name": "WasItAI",
@@ -6654,20 +7430,6 @@
    "opsec_note": "Account activity and location sharing are logged by the platform."
   },
   {
-   "name": "BeautifulPeople.com",
-   "url": "https://www.beautifulpeople.com/en-US",
-   "category": "Dating",
-   "types": [
-    "media"
-   ],
-   "opsec": "active",
-   "pricing": "freemium",
-   "desc": "Dating community with verification-oriented onboarding and profile access tied to membership standards.",
-   "best_for": "Identity-verified social discovery and premium dating communities",
-   "registration": true,
-   "opsec_note": "Identity-linked profile verification and social activity are stored by the platform."
-  },
-  {
    "name": "Bing Videos",
    "url": "https://www.bing.com/videos",
    "category": "Images / Videos / Docs",
@@ -6704,6 +7466,22 @@
    "best_for": "Women-initiated conversations and location-based dating",
    "registration": true,
    "opsec_note": "Platform logs activity, messaging, and location-driven matching behavior."
+  },
+  {
+   "name": "Burp Suite (T)",
+   "url": "https://portswigger.net/burp/download.html",
+   "category": "Documentation / Evidence Capture",
+   "types": [
+    "media"
+   ],
+   "opsec": "active",
+   "pricing": "freemium",
+   "desc": "Integrated web application security testing platform with proxy, scanner, and manual testing tools for vulnerability assessment.",
+   "best_for": "Web application security testing, vulnerability discovery, traffic analysis",
+   "registration": true,
+   "local_install": true,
+   "api": true,
+   "opsec_note": "Active security testing tool; generates traffic and may trigger security alarms on target systems."
   },
   {
    "name": "C2PA Verify",
@@ -6848,7 +7626,8 @@
    "url": "https://facecheck.id/",
    "category": "Images / Videos / Docs",
    "types": [
-    "media"
+    "media",
+    "name"
    ],
    "opsec": "active",
    "pricing": "freemium",
@@ -6898,6 +7677,22 @@
    "registration": true,
    "api": true,
    "opsec_note": "Platform usage and connected account actions are visible to service provider logs."
+  },
+  {
+   "name": "Fiddler (T)",
+   "url": "https://www.telerik.com/download/fiddler",
+   "category": "Documentation / Evidence Capture",
+   "types": [
+    "media"
+   ],
+   "opsec": "active",
+   "pricing": "freemium",
+   "desc": "Web debugging proxy that monitors, inspects, and logs HTTPS/WebSocket traffic between a computer and the internet for analysis.",
+   "best_for": "Network traffic analysis, web debugging, protocol inspection",
+   "registration": true,
+   "local_install": true,
+   "api": true,
+   "opsec_note": "Network-level traffic capture; may require target awareness and can trigger security alarms."
   },
   {
    "name": "filessoo.com",
@@ -7516,20 +8311,6 @@
    "opsec_note": "Profile and compatibility data are stored, with lower visibility than real-time swipe apps."
   },
   {
-   "name": "Surfface Face & People Search Engine",
-   "url": "https://surfface.com/",
-   "category": "Images / Videos / Docs",
-   "types": [
-    "media"
-   ],
-   "opsec": "active",
-   "pricing": "freemium",
-   "desc": "AI-based face and people search platform focused on open-source identity discovery and correlation.",
-   "best_for": "Identity correlation from face imagery",
-   "registration": true,
-   "opsec_note": "Submits facial data to vendor infrastructure for matching against indexed sources."
-  },
-  {
    "name": "Tantan (R)",
    "url": "https://int.tantanapp.com",
    "category": "Dating",
@@ -7671,6 +8452,21 @@
    "best_for": ""
   },
   {
+   "name": "ZeeMaps",
+   "url": "https://www.zeemaps.com/",
+   "category": "Documentation / Evidence Capture",
+   "types": [
+    "media"
+   ],
+   "opsec": "passive",
+   "pricing": "paid",
+   "desc": "Interactive map creation and sharing tool with unlimited markers, 3-level access control, and support for crowdsourced data input.",
+   "best_for": "Location mapping, investigation visualization, crowdsourced data collection",
+   "registration": true,
+   "api": true,
+   "opsec_note": "Cloud mapping service; creates shareable maps that may be public unless access is restricted."
+  },
+  {
    "name": "Amazon Registry Search",
    "url": "https://www.amazon.com/registries",
    "category": "People Search Engines",
@@ -7766,6 +8562,35 @@
    "opsec_note": "Government registry query; no interaction with the target entity."
   },
   {
+   "name": "Companies House",
+   "url": "https://beta.companieshouse.gov.uk/",
+   "category": "Business Records",
+   "types": [
+    "name",
+    "media"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "Official UK government company registry for England, Wales, Scotland, and Northern Ireland. Provides free access to company filings, officers, and re…",
+   "best_for": "UK company registration details, directors, and filed accounts",
+   "api": true,
+   "opsec_note": "Official government registry; queries do not interact with the target company."
+  },
+  {
+   "name": "Companies House (R)",
+   "url": "https://find-and-update.company-information.service.gov.uk/",
+   "category": "Compliance & Risk Intelligence",
+   "types": [
+    "name"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "Official UK government register for searching company information, officer appointments, and disqualified directors across all UK-registered companie…",
+   "best_for": "Looking up UK company details, officers, and filing history",
+   "api": true,
+   "opsec_note": "Public UK government service; searches are passive lookups against an open register."
+  },
+  {
    "name": "Companies In The UK",
    "url": "https://www.companiesintheuk.co.uk/",
    "category": "Business Records",
@@ -7791,6 +8616,20 @@
    "best_for": "Federal court opinion and docket search",
    "api": true,
    "opsec_note": "Nonprofit legal research platform"
+  },
+  {
+   "name": "Craigslist",
+   "url": "https://charlotte.craigslist.org/",
+   "category": "Classifieds",
+   "types": [
+    "name"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "One of the largest free online classifieds platforms in the US, covering jobs, housing, for sale, services, and community posts organized by metropol…",
+   "best_for": "Searching local US classifieds by city, vehicle/property fraud investigations, locating individuals via posts",
+   "google_dork": true,
+   "opsec_note": "Browsing listings is passive; contacting sellers is active and may reveal your identity."
   },
   {
    "name": "Credit Freeze",
@@ -8432,6 +9271,34 @@
    "opsec_note": "Registration required for full access; queries are logged by OCCRP but subjects are not notified."
   },
   {
+   "name": "OFAC Sanctions List Search",
+   "url": "https://sanctionssearch.ofac.treas.gov/",
+   "category": "Compliance & Risk Intelligence",
+   "types": [
+    "name"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "Official U.S. Treasury Department tool for searching the Specially Designated Nationals (SDN) list and consolidated sanctions lists using fuzzy-logic…",
+   "best_for": "Checking individuals or entities against U.S. sanctions programs",
+   "opsec_note": "Public U.S. government search tool; queries are submitted to a federal server and may be logged."
+  },
+  {
+   "name": "OfferUp",
+   "url": "https://offerup.com/",
+   "category": "Classifieds",
+   "types": [
+    "name",
+    "media"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "US-focused mobile-first marketplace for local buying and selling of goods, with user profiles that may include ratings, reviews, and item listing his…",
+   "best_for": "Local US marketplace investigations, seller profile research, connecting listings to individuals",
+   "google_dork": true,
+   "opsec_note": "Browsing is passive; messaging sellers requires an account and reveals your identity."
+  },
+  {
    "name": "Open Access Scholarly Journals",
    "url": "https://www.pagepress.org/",
    "category": "Search Engines",
@@ -8500,6 +9367,19 @@
    "best_for": "Investigating beneficial ownership of corporate entities across jurisdictions",
    "api": true,
    "opsec_note": "Public web queries against open data; no notification to subjects."
+  },
+  {
+   "name": "OpenScreening",
+   "url": "https://resources.linkurious.com/openscreening",
+   "category": "Compliance & Risk Intelligence",
+   "types": [
+    "name"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "Free graph-based PEP and sanctions screening tool by Linkurious that visualizes connections across persons of interest using OpenSanctions and ICIJ d…",
+   "best_for": "Visualizing connections between sanctioned entities, PEPs, and offshore structures",
+   "opsec_note": "Web-based search against public datasets hosted by Linkurious; queries are sent to their servers."
   },
   {
    "name": "OptOut Credit Prescreen",
@@ -8709,6 +9589,19 @@
    "opsec_note": "Passive OSINT with complete code transparency; open source project suitable for security research; can be self-hosted"
   },
   {
+   "name": "Terrorist Finance Tracking Program",
+   "url": "https://home.treasury.gov/policy-issues/terrorism-and-illicit-finance/terrorist-finance-tracking-program-tftp",
+   "category": "Cyber Threat Intelligence",
+   "types": [
+    "name"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "U.S. Treasury program tracking terrorist financing and money laundering.",
+   "best_for": "Terrorist financing intelligence",
+   "opsec_note": "Government resource access"
+  },
+  {
    "name": "The Bump",
    "url": "https://registry.thebump.com/babyregistrysearch",
    "category": "People Search Engines",
@@ -8872,8 +9765,8 @@
    "opsec_note": "Official Dutch tax authority"
   },
   {
-   "name": "VMware Workstation Player (T)",
-   "url": "https://www.vmware.com/products/player/playerpro-evaluation.html",
+   "name": "VMware Workstation Pro (T)",
+   "url": "https://www.vmware.com/products/desktop-hypervisor/workstation-and-fusion",
    "category": "Tools",
    "types": [
     "name",
@@ -8883,6 +9776,7 @@
    "pricing": "free",
    "desc": "Free lightweight desktop virtualization application for running multiple operating systems on a single computer without rebooting.",
    "best_for": "Desktop virtualization for personal/educational use",
+   "registration": true,
    "local_install": true,
    "opsec_note": "No inherent privacy enhancement; privacy depends on guest OS configuration"
   },
@@ -8966,6 +9860,22 @@
    "opsec_note": "Free basic search; subscription required for full record access and DNA features."
   },
   {
+   "name": "Arkham Intelligence",
+   "url": "https://intel.arkm.com/",
+   "category": "Blockchain & Cryptocurrency",
+   "types": [
+    "name",
+    "crypto"
+   ],
+   "opsec": "active",
+   "pricing": "freemium",
+   "desc": "AI-powered blockchain intelligence platform mapping 300+ million address labels and 150K+ entity pages using proprietary Ultra system for entity dean…",
+   "best_for": "Institutional-grade cryptocurrency entity mapping and fund-flow analysis",
+   "registration": true,
+   "api": true,
+   "opsec_note": "Aggregates on-chain and off-chain intelligence; registered users leave account footprint. Government and institutional adoption."
+  },
+  {
    "name": "arXiv.org",
    "url": "https://arxiv.org/",
    "category": "Search Engines",
@@ -8994,6 +9904,21 @@
    "opsec_note": "Location, profile interactions, and behavioral signals are collected for matching."
   },
   {
+   "name": "BeautifulPeople.com",
+   "url": "https://www.beautifulpeople.com/en-US",
+   "category": "Dating",
+   "types": [
+    "name",
+    "media"
+   ],
+   "opsec": "active",
+   "pricing": "freemium",
+   "desc": "Dating community with verification-oriented onboarding and profile access tied to membership standards.",
+   "best_for": "Identity-verified social discovery and premium dating communities",
+   "registration": true,
+   "opsec_note": "Identity-linked profile verification and social activity are stored by the platform."
+  },
+  {
    "name": "BIN Base",
    "url": "https://www.buybindatabase.binbase.com/",
    "category": "Public Records",
@@ -9020,6 +9945,18 @@
    "best_for": "Privacy-preserving searches, custom filtering via Goggles, enterprises needing zero data retention",
    "api": true,
    "opsec_note": "Passive OSINT with zero data retention option for API; 90-day query log retention for billing purposes only"
+  },
+  {
+   "name": "BRB Public Records",
+   "url": "https://www.brbpub.com/",
+   "category": "Compliance & Risk Intelligence",
+   "types": [
+    "name"
+   ],
+   "opsec": "unknown",
+   "pricing": "unknown",
+   "desc": "",
+   "best_for": ""
   },
   {
    "name": "Buzzfile",
@@ -9075,6 +10012,21 @@
    "registration": true,
    "api": true,
    "opsec_note": "Queries processed through Crunchbase servers; aggregates from public and submitted data."
+  },
+  {
+   "name": "dilisense",
+   "url": "https://dilisense.com/en",
+   "category": "Compliance & Risk Intelligence",
+   "types": [
+    "name"
+   ],
+   "opsec": "passive",
+   "pricing": "freemium",
+   "desc": "AML compliance platform that screens individuals and entities against sanctions, PEP, and watchlist data sources with fuzzy matching and confidence s…",
+   "best_for": "Commercial AML/KYC sanctions screening and PEP checks",
+   "registration": true,
+   "api": true,
+   "opsec_note": "Queries sent to dilisense servers; registration required so searches are tied to an account."
   },
   {
    "name": "Docket Alarm",
@@ -9279,6 +10231,20 @@
    "opsec_note": "Commercial service; creates footprint"
   },
   {
+   "name": "NameScan",
+   "url": "https://namescan.io",
+   "category": "Compliance & Risk Intelligence",
+   "types": [
+    "name"
+   ],
+   "opsec": "passive",
+   "pricing": "freemium",
+   "desc": "Compliance screening platform providing sanctions checks, PEP screenings, and adverse media searches against global government databases with a free…",
+   "best_for": "Quick free sanctions and PEP screening with adverse media checks",
+   "api": true,
+   "opsec_note": "Free scans available without registration; full access requires account creation."
+  },
+  {
    "name": "NewsBot",
    "url": "https://getnewsbot.com/",
    "category": "Search Engines",
@@ -9337,6 +10303,18 @@
    "types": [
     "name",
     "username"
+   ],
+   "opsec": "unknown",
+   "pricing": "unknown",
+   "desc": "",
+   "best_for": ""
+  },
+  {
+   "name": "Open-Data-Portal München (German)",
+   "url": "https://www.opengov-muenchen.de/",
+   "category": "Compliance & Risk Intelligence",
+   "types": [
+    "name"
    ],
    "opsec": "unknown",
    "pricing": "unknown",
@@ -9430,6 +10408,18 @@
    "best_for": ""
   },
   {
+   "name": "Public Records?",
+   "url": "https://publicrecords.searchsystems.net/",
+   "category": "Compliance & Risk Intelligence",
+   "types": [
+    "name"
+   ],
+   "opsec": "unknown",
+   "pricing": "unknown",
+   "desc": "",
+   "best_for": ""
+  },
+  {
    "name": "Regrid (US Only)",
    "url": "https://regrid.com",
    "category": "Public Records",
@@ -9510,6 +10500,18 @@
    "opsec_note": "Passive aggregated search; premium features require account but browsing results is free."
   },
   {
+   "name": "Searchable FCC ID Database",
+   "url": "https://fccid.io/",
+   "category": "Compliance & Risk Intelligence",
+   "types": [
+    "name"
+   ],
+   "opsec": "unknown",
+   "pricing": "unknown",
+   "desc": "",
+   "best_for": ""
+  },
+  {
    "name": "Searchcode",
    "url": "https://searchcode.com/",
    "category": "Search Engines",
@@ -9553,6 +10555,21 @@
    "opsec_note": "Passive OSINT with added anonymity layer; completely hides identity from destination sites via proxy servers"
   },
   {
+   "name": "Surfface Face & People Search Engine",
+   "url": "https://surfface.com/",
+   "category": "Images / Videos / Docs",
+   "types": [
+    "name",
+    "media"
+   ],
+   "opsec": "active",
+   "pricing": "freemium",
+   "desc": "AI-based face and people search platform focused on open-source identity discovery and correlation.",
+   "best_for": "Identity correlation from face imagery",
+   "registration": true,
+   "opsec_note": "Submits facial data to vendor infrastructure for matching against indexed sources."
+  },
+  {
    "name": "Swisscows",
    "url": "https://swisscows.com/en",
    "category": "Search Engines",
@@ -9565,6 +10582,21 @@
    "desc": "Swiss privacy-focused search engine using semantic AI. Stores all data in Swiss Alps facility. No cookies, no tracking, no user profiles. Includes fa…",
    "best_for": "Privacy-conscious searches, family-safe content filtering, Swiss data residency requirement",
    "opsec_note": "Passive OSINT with maximum privacy; data stored in Switzerland outside EU/USA; permanent family-safe filtering cannot be disabled"
+  },
+  {
+   "name": "TGStat",
+   "url": "https://tgstat.com/",
+   "category": "Instant Messaging",
+   "types": [
+    "name"
+   ],
+   "opsec": "passive",
+   "pricing": "freemium",
+   "desc": "Telegram analytics platform indexing public channels and chats with growth, engagement, and content metrics.",
+   "best_for": "Telegram channel trend analysis and engagement benchmarking",
+   "registration": true,
+   "api": true,
+   "opsec_note": "Reads TGStat indexed analytics data; no direct contact with targets for normal lookups."
   },
   {
    "name": "The Open Syllabus Project",
@@ -9645,6 +10677,21 @@
    "pricing": "unknown",
    "desc": "",
    "best_for": ""
+  },
+  {
+   "name": "World Monitor",
+   "url": "https://www.worldmonitor.app/",
+   "category": "AI Tools",
+   "types": [
+    "name"
+   ],
+   "opsec": "passive",
+   "pricing": "freemium",
+   "desc": "AI-powered geopolitical event monitoring and intelligence platform that tracks global news and events relevant to national security and business risk.",
+   "best_for": "Geopolitical OSINT, global event monitoring, early warning intelligence gathering",
+   "registration": true,
+   "api": true,
+   "opsec_note": "Passive monitoring of publicly available news; queries are submitted to their platform."
   },
   {
    "name": "World News",
@@ -9857,20 +10904,6 @@
    "desc": "Free people search engine for name, phone, and address lookups. Basic results are free; detailed reports redirect to Intelius (paid).",
    "best_for": "Quick US people and address lookups",
    "opsec_note": "Free basic searches; detailed reports require Intelius subscription."
-  },
-  {
-   "name": "CallerID Test",
-   "url": "https://calleridtest.com/",
-   "category": "Telephone Numbers",
-   "types": [
-    "phone"
-   ],
-   "opsec": "passive",
-   "pricing": "freemium",
-   "desc": "Caller ID and number-validation utility for checking formatting and telecom metadata responses.",
-   "best_for": "Caller-ID behavior and number validity testing",
-   "api": true,
-   "opsec_note": "Validation-style lookup with no direct contact to the target subscriber."
   },
   {
    "name": "Data24-7 (R)",
@@ -10216,6 +11249,35 @@
    "opsec_note": "Uses BlackPlanet's public member search; no authentication required and searches are anonymous."
   },
   {
+   "name": "Blog Search Engine",
+   "url": "https://www.blogsearchengine.org/",
+   "category": "Online Communities",
+   "types": [
+    "username",
+    "name"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "Blog-focused search engine for discovering blog posts, directories, and RSS-connected content.",
+   "best_for": "Blog discovery and topic-focused blog post searching",
+   "opsec_note": "Aggregates publicly indexed blog data without direct user contact to target blogs; queries are logged."
+  },
+  {
+   "name": "BoardReader",
+   "url": "https://boardreader.com/",
+   "category": "Online Communities",
+   "types": [
+    "username",
+    "name"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "Forum search engine that indexes discussions across message boards and community platforms.",
+   "best_for": "Finding forum threads and topic-centric discussion history",
+   "google_dork": true,
+   "opsec_note": "Searches indexed forum content and avoids direct interaction with target forum users."
+  },
+  {
    "name": "Cama's Reddit Search",
    "url": "https://camas.github.io/reddit-search/",
    "category": "Online Communities",
@@ -10227,6 +11289,21 @@
    "desc": "Web tool for searching Reddit posts and comments by author, subreddit, text, and time filters.",
    "best_for": "Reddit user and subreddit content discovery",
    "opsec_note": "Uses public data indexing paths; original GitHub hosting was discontinued but alternative hosting remains available."
+  },
+  {
+   "name": "Craigslist Forums",
+   "url": "https://forums.craigslist.org/",
+   "category": "Online Communities",
+   "types": [
+    "username",
+    "name"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "Craigslist-hosted forum system for public community discussions and region-oriented threads.",
+   "best_for": "Reviewing Craigslist community discussions and regional forum activity",
+   "google_dork": true,
+   "opsec_note": "Reads publicly visible forum content and does not require direct messaging or contact with users."
   },
   {
    "name": "Delicious",
@@ -10257,6 +11334,21 @@
    "desc": "Public Discord server discovery platform used to find communities by topic, language, and popularity.",
    "best_for": "Discovering public Discord communities and server metadata",
    "opsec_note": "Searches are performed against Disboard listings; browsing does not interact with target users directly."
+  },
+  {
+   "name": "Discord Bot List",
+   "url": "https://discord.bots.gg/",
+   "category": "Online Communities",
+   "types": [
+    "username",
+    "name"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "Searchable directory of Discord bots with listings, categories, and discovery metadata.",
+   "best_for": "Discord bot discovery and ecosystem mapping",
+   "api": true,
+   "opsec_note": "Enumerates publicly listed bots and does not require direct Discord account interaction for browsing."
   },
   {
    "name": "DMI-TCAT (T)",
@@ -10381,6 +11473,21 @@
    "opsec_note": "Queries publicly visible profile data through a third-party interface."
   },
   {
+   "name": "francais-a-londres.org - French Classifieds",
+   "url": "https://francaisalondres.com/",
+   "category": "Classifieds",
+   "types": [
+    "username",
+    "name"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "French-language classifieds site for the French community in London covering housing, jobs, services, and items for sale.",
+   "best_for": "Investigating French-speaking subjects in the UK, Franco-British community connections",
+   "google_dork": true,
+   "opsec_note": "Browsing is passive; contacting sellers reveals identity. Niche audience reduces counter-OSINT risk."
+  },
+  {
    "name": "Freenet Project (T)",
    "url": "https://www.hyphanet.org/",
    "category": "Dark Web",
@@ -10450,6 +11557,7 @@
    "category": "Search Engines",
    "types": [
     "username",
+    "name",
     "media"
    ],
    "opsec": "active",
@@ -10458,6 +11566,20 @@
    "best_for": "GitHub organization reconnaissance for exposed secrets and sensitive files in commit history",
    "local_install": true,
    "opsec_note": "Directly queries the GitHub API and clones repositories; API activity is logged and may alert security monitoring."
+  },
+  {
+   "name": "Goofbid",
+   "url": "https://www.goofbid.com/",
+   "category": "Classifieds",
+   "types": [
+    "username",
+    "name"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "eBay auction search and sniping tool that finds misspelled eBay listings and provides advanced search features to surface hard-to-find items.",
+   "best_for": "Finding overlooked eBay listings, researching items through misspelled keywords, auction intelligence",
+   "opsec_note": "Search-only tool that queries eBay data passively; no account required for basic search."
   },
   {
    "name": "Google CSE for Telegram links",
@@ -10472,6 +11594,22 @@
    "desc": "Preconfigured Google Custom Search Engine focused on public Telegram links and channel discovery.",
    "best_for": "Finding public Telegram channels and groups by keyword",
    "opsec_note": "Queries are sent to Google CSE rather than directly to Telegram services."
+  },
+  {
+   "name": "Google Groups Search",
+   "url": "https://groups.google.com/forum/#!overview",
+   "category": "Online Communities",
+   "types": [
+    "username",
+    "name"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "Search interface for Google Groups and archived discussion content, including historical threads.",
+   "best_for": "Researching archived mailing-list and discussion-group content",
+   "api": true,
+   "google_dork": true,
+   "opsec_note": "Searches archived public discussions through Google-hosted infrastructure where activity is logged."
   },
   {
    "name": "Google Social Search",
@@ -10562,6 +11700,36 @@
    "opsec_note": "Lookup is performed through the service; avoid using sensitive operational accounts."
   },
   {
+   "name": "IRCP (T)",
+   "url": "https://github.com/internet-relay-chat/IRCP",
+   "category": "Online Communities",
+   "types": [
+    "username",
+    "name"
+   ],
+   "opsec": "active",
+   "pricing": "free",
+   "desc": "Python-based IRC probing utility for scanning servers and collecting network/channel metadata.",
+   "best_for": "IRC server enumeration and protocol-level reconnaissance",
+   "local_install": true,
+   "opsec_note": "Actively connects to IRC services and may be detectable by network monitoring and server logs."
+  },
+  {
+   "name": "ircsnapshot (T)",
+   "url": "https://github.com/bwall/ircsnapshot",
+   "category": "Online Communities",
+   "types": [
+    "username",
+    "name"
+   ],
+   "opsec": "active",
+   "pricing": "free",
+   "desc": "IRC data collection tool that connects bots to servers for user and channel mapping.",
+   "best_for": "IRC topology mapping and user/channel relationship analysis",
+   "local_install": true,
+   "opsec_note": "Requires active network participation via bot accounts and is likely visible to channel operators."
+  },
+  {
    "name": "Keybase",
    "url": "https://keybase.io/",
    "category": "Username",
@@ -10575,6 +11743,21 @@
    "best_for": "Looking up verified social accounts, PGP keys, and crypto wallets tied to a username",
    "api": true,
    "opsec_note": "Public profile lookups are passive web requests. No login required to view profiles."
+  },
+  {
+   "name": "Kijiji - Canada Classifieds",
+   "url": "https://www.kijiji.ca:443/",
+   "category": "Classifieds",
+   "types": [
+    "username",
+    "name"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "Canada's largest free online classifieds marketplace covering vehicles, real estate, jobs, and general merchandise listings across Canadian cities.",
+   "best_for": "Canadian classified investigations, vehicle/property fraud research, locating subjects via listings",
+   "google_dork": true,
+   "opsec_note": "Browsing is passive; contacting sellers or creating an account exposes your identity."
   },
   {
    "name": "Kik (T)",
@@ -10591,6 +11774,35 @@
    "registration": true,
    "local_install": true,
    "opsec_note": "Public search available; less monitored than major platforms"
+  },
+  {
+   "name": "Kleinanzeigen.de",
+   "url": "https://www.kleinanzeigen.de/",
+   "category": "Classifieds",
+   "types": [
+    "username",
+    "name"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "Germany's largest classified ads platform (formerly eBay Kleinanzeigen) for vehicles, real estate, electronics, and general merchandise.",
+   "best_for": "German classifieds investigations, German-speaking subject research, vehicle and property fraud research",
+   "google_dork": true,
+   "opsec_note": "Browsing is passive; account needed to contact sellers, which exposes your identity."
+  },
+  {
+   "name": "Live Journal Seek",
+   "url": "https://ljseek.com/",
+   "category": "Online Communities",
+   "types": [
+    "username",
+    "name"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "Search tool for LiveJournal journals and communities across public entries that are indexed.",
+   "best_for": "Finding public LiveJournal entries and historical community discussions",
+   "opsec_note": "Searches publicly indexed content and does not contact journal owners directly; queries are likely logged."
   },
   {
    "name": "Masto (T)",
@@ -10682,6 +11894,21 @@
    "desc": "Web-based username and domain availability checker that searches 100+ social media platforms and 36 domain extensions simultaneously.",
    "best_for": "Quick username availability check across social media and domains",
    "opsec_note": "Searches are routed through Namechk's servers; target accounts are not directly contacted by the user."
+  },
+  {
+   "name": "netsplit.de",
+   "url": "https://netsplit.de/channels/search.php",
+   "category": "Online Communities",
+   "types": [
+    "username",
+    "name"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "IRC directory and search portal for channel listings, network stats, and discovery workflows.",
+   "best_for": "Passive IRC channel discovery and network trend checks",
+   "google_dork": true,
+   "opsec_note": "Uses aggregated indexed IRC data and does not require direct IRC server interaction for searches."
   },
   {
    "name": "Odnoklassniki",
@@ -10900,6 +12127,21 @@
    "opsec_note": "Unauthenticated API query to ProtonMail's public key server. Target user is not notified. Enables user enumeration."
   },
   {
+   "name": "Quikr - India Classifieds",
+   "url": "https://www.quikr.com/",
+   "category": "Classifieds",
+   "types": [
+    "username",
+    "name"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "Major Indian online classifieds platform for buying and selling goods, services, vehicles, and real estate across hundreds of Indian cities.",
+   "best_for": "Indian classifieds investigations, tracking subjects through local listings, fraud research",
+   "google_dork": true,
+   "opsec_note": "Passive browsing; contacting sellers requires account creation and may reveal personal details."
+  },
+  {
    "name": "raven (T)",
    "url": "https://github.com/0x09AL/raven",
    "category": "Social Networks",
@@ -11014,6 +12256,20 @@
    "local_install": true,
    "api": true,
    "opsec_note": "Privacy depends on server configuration; public rooms and communities are openly accessible"
+  },
+  {
+   "name": "SearchAllJunk",
+   "url": "https://www.searchalljunk.com/",
+   "category": "Classifieds",
+   "types": [
+    "username",
+    "name"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "Classifieds metasearch engine that searches across multiple classified platforms simultaneously including Craigslist and similar sites.",
+   "best_for": "Cross-platform classifieds search, aggregating listings from multiple sources simultaneously",
+   "opsec_note": "Passive search aggregator; does not require account or expose user data."
   },
   {
    "name": "Share Secret Feedback (M)",
@@ -11351,6 +12607,21 @@
    "opsec_note": "Direct requests to platform endpoints expose source IP and request patterns."
   },
   {
+   "name": "Top.gg",
+   "url": "https://top.gg/",
+   "category": "Online Communities",
+   "types": [
+    "username",
+    "name"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "Large Discord bot and app discovery platform with ranking, filtering, and listing data.",
+   "best_for": "Discord bot ranking analysis and app discovery",
+   "api": true,
+   "opsec_note": "Uses public listing data and does not require direct target interaction for standard browsing."
+  },
+  {
    "name": "Tor Download (T)",
    "url": "https://www.torproject.org/download/",
    "category": "Dark Web",
@@ -11395,6 +12666,33 @@
    "local_install": true,
    "api": true,
    "opsec_note": "Performs direct queries to Telegram services for target resolution and metadata retrieval."
+  },
+  {
+   "name": "TotalCraigSearch",
+   "url": "https://www.totalcraigsearch.com/",
+   "category": "Classifieds",
+   "types": [
+    "username",
+    "name"
+   ],
+   "opsec": "passive",
+   "pricing": "free",
+   "desc": "Search tool that enables cross-city and nationwide searches across Craigslist, bypassing the site's single-city search limitation.",
+   "best_for": "Nationwide Craigslist searches, tracking listings across multiple cities for a single subject or item",
+   "opsec_note": "Passive search tool that fetches public Craigslist listings; no account required."
+  },
+  {
+   "name": "TTAnon",
+   "url": "https://ttanon.com/",
+   "category": "Social Networks",
+   "types": [
+    "username"
+   ],
+   "opsec": "active",
+   "pricing": "free",
+   "desc": "Web viewer for public TikTok profiles, videos, photo posts, hashtags, and sounds that works without a TikTok account.",
+   "best_for": "Viewing public TikTok content without an account or login",
+   "opsec_note": "Pages are server-rendered, so TikTok scripts do not load, but video playback streams from TikTok's CDN and exposes your IP; the site uses Google Analytics and…"
   },
   {
    "name": "Tweet Metadata",
@@ -11660,6 +12958,21 @@
    "opsec_note": "Search and interaction activity can expose sensitive preference and account data."
   },
   {
+   "name": "Arctic Shift",
+   "url": "https://arctic-shift.photon-reddit.com/",
+   "category": "Online Communities",
+   "types": [
+    "username",
+    "name"
+   ],
+   "opsec": "passive",
+   "pricing": "freemium",
+   "desc": "Search and access layer for Reddit datasets with tools for historical content retrieval and analysis.",
+   "best_for": "Historical Reddit dataset analysis and subreddit research",
+   "api": true,
+   "opsec_note": "Works against archived or indexed data sources without requiring direct engagement with target accounts."
+  },
+  {
    "name": "Bot Scout",
    "url": "https://botscout.com/",
    "category": "Cyber Threat Intelligence",
@@ -11708,6 +13021,20 @@
    "registration": true,
    "api": true,
    "opsec_note": "Searches aggregated public breach databases."
+  },
+  {
+   "name": "Delphi Forum Search",
+   "url": "https://www.delphiforums.com/",
+   "category": "Online Communities",
+   "types": [
+    "username",
+    "name"
+   ],
+   "opsec": "passive",
+   "pricing": "freemium",
+   "desc": "Forum platform with searchable user communities across niche interest categories.",
+   "best_for": "Niche forum discovery and historical community thread review",
+   "opsec_note": "Public forum browsing is passive; some communities may require registration for deeper access."
   },
   {
    "name": "Followerwonk (R)",
@@ -11804,6 +13131,22 @@
    "opsec_note": "Aggregates public data from multiple sources; passive only"
   },
   {
+   "name": "Omgili",
+   "url": "https://webz.io/",
+   "category": "Online Communities",
+   "types": [
+    "username",
+    "name"
+   ],
+   "opsec": "passive",
+   "pricing": "freemium",
+   "desc": "Forum and discussion search capability operated through Webz.io infrastructure and data products.",
+   "best_for": "Forum discussion discovery with optional API-driven workflows",
+   "api": true,
+   "google_dork": true,
+   "opsec_note": "Uses indexed discussion datasets from a third-party provider; user-side browsing is passive."
+  },
+  {
    "name": "RiteTag",
    "url": "https://ritetag.com/",
    "category": "Social Networks",
@@ -11863,22 +13206,6 @@
    "registration": true,
    "api": true,
    "opsec_note": "Searches aggregated social data; registration required for full features."
-  },
-  {
-   "name": "TGStat",
-   "url": "https://tgstat.com/",
-   "category": "Instant Messaging",
-   "types": [
-    "username",
-    "phone"
-   ],
-   "opsec": "passive",
-   "pricing": "freemium",
-   "desc": "Telegram analytics platform indexing public channels and chats with growth, engagement, and content metrics.",
-   "best_for": "Telegram channel trend analysis and engagement benchmarking",
-   "registration": true,
-   "api": true,
-   "opsec_note": "Reads TGStat indexed analytics data; no direct contact with targets for normal lookups."
   },
   {
    "name": "Threads Dashboard",

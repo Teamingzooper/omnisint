@@ -299,7 +299,8 @@ def make_handler(state: State, token: str):
                               else ([str(x) for x in raw], []))
                 seeds = [Identifier.parse(x) for x in primary]
                 from ..catalog import attribution, flags, leads_for
-                found = leads_for(seeds, limit=int(payload.get("limit") or 12))
+                found = leads_for(seeds, limit=int(payload.get("limit") or 12),
+                                  include_media=bool(payload.get("media")))
                 return self._json({
                     "attribution": attribution(),
                     "buckets": [

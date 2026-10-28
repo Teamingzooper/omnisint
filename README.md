@@ -140,6 +140,17 @@ nonsense. The scope it used is printed underneath every time.
 The same summary appears in the terminal viewer ("What they do") and in the
 Markdown and HTML exports.
 
+### Display filter
+
+With several hundred rows, sorting is not enough. The grid has a Wireshark
+-style display filter: plain substring matching across every visible cell,
+space-separated terms ANDed together, with a live `n of m rows` count. `/`
+focuses it, `Esc` clears it.
+
+Four quick filters sit beside it — **subject**, **others**, **confirmed**,
+**has data** — and they grey out on tabs whose rows have no attribution to
+filter on, rather than silently hiding everything.
+
 Rows are coloured the way Wireshark colours packets: **green** = corroborated
 as your subject, **red** = probably a different person, yellow/blue = weaker
 existence evidence. Click any row to see every field a tool returned in the
@@ -153,6 +164,35 @@ Binding to anything other than `127.0.0.1` is refused outright: the UI has no
 login and serves personal data. Tunnel over SSH if you need it elsewhere. The
 authorisation gate and audit log apply exactly as they do in the console, and
 nothing is written to disk until you press Export.
+
+## Does it agree with reality?
+
+Unit tests prove the plumbing. They cannot tell you whether a scan is
+*right*. `tests/test_accuracy.py` checks findings against ground truth it
+establishes live from each platform's own API, so the expectations cannot
+go stale or rest on anybody's memory.
+
+```bash
+python3 tests/test_accuracy.py --full
+```
+
+| backend | recall | false positives | claims on a handle that exists nowhere | time |
+|---|---|---|---|---|
+| maigret | 2/2 | 0 | 2 | 64s |
+| user-scanner | 2/2 | 0 | 2 | 65s |
+| sherlock | 2/2 | 0 | 6 | 113s |
+
+The second measure is the one that matters. Recall is easy; every sweeper
+finds `torvalds` on GitHub. The failure that hurts is a tool claiming a
+nonexistent handle is registered on dozens of sites, because that is how an
+innocent person gets implicated.
+
+Sherlock makes **three times** the false claims of the other two and takes
+nearly twice as long. Its confidence weight was 0.45 against maigret's 0.70
+on reasoning alone; that number now has evidence behind it.
+
+Only public figures' public accounts and synthetic handles are used. No
+private individual is profiled in order to test a tool.
 
 ## Where to look by hand
 
@@ -192,7 +232,7 @@ than a wall of links:
   alphabetically puts *AnnualReports.com* above Have I Been Pwned, so the
   canonical first stops are ranked explicitly per identifier type.
 
-843 resources ship, curated from 1,168: dead, deprecated and duplicate
+936 resources ship, curated from 1,171: dead, deprecated and duplicate
 entries dropped, and anything that cannot be routed to an identifier type we
 recognise. Refresh from upstream with `python3 tools/build_catalog.py`.
 

@@ -48,6 +48,7 @@ MODULES_BY_TYPE: dict[IdType, tuple[str, ...]] = {
     IdType.USERNAME: ("sfp_accounts", "sfp_social", "sfp_socialprofiles",
                       "sfp_github", "sfp_names"),
     IdType.PHONE: ("sfp_callername", "sfp_names"),
+    IdType.IP: ("sfp_dnsresolve", "sfp_whois", "sfp_crt", "sfp_hackertarget"),
 }
 
 #: SpiderFoot prints the human-readable event description, not the type id.
@@ -65,7 +66,8 @@ INFRA = {"ip address", "ipv6 address", "internet name", "domain name",
 class SpiderFootAdapter(Adapter):
     name = "spiderfoot"
     binary = None
-    accepts = (IdType.USERNAME, IdType.EMAIL, IdType.DOMAIN, IdType.PHONE)
+    accepts = (IdType.USERNAME, IdType.EMAIL, IdType.DOMAIN, IdType.PHONE,
+               IdType.IP)
     base_weight = 0.66
     opt_in = True
     #: SpiderFoot modules feed each other, so a scan can cascade and never

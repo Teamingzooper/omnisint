@@ -14,6 +14,8 @@ from typing import Any
 
 class IdType(str, Enum):
     USERNAME = "username"
+    IP = "ip"
+    CRYPTO = "crypto"
     EMAIL = "email"
     PHONE = "phone"
     DOMAIN = "domain"
@@ -52,6 +54,19 @@ def _is_domain(value: str) -> bool:
     return value.rsplit(".", 1)[-1].lower() in _COMMON_TLDS
 _URL_RE = re.compile(r"^https?://", re.I)
 _USERNAME_RE = re.compile(r"^[A-Za-z0-9._\-]{2,64}$")
+_IPV4_RE = re.compile(r"^(\d{1,3}\.){3}\d{1,3}(/\d{1,2})?$")
+_IPV6_RE = re.compile(r"^(?=.*:)[0-9A-Fa-f:]{3,45}(/\d{1,3})?$")
+# Bitcoin (legacy, P2SH, bech32) and Ethereum-style addresses. Deliberately
+# strict: a loose pattern would swallow ordinary alphanumeric handles.
+_BTC_RE = re.compile(r"^(bc1[a-z0-9]{25,59}|[13][a-km-zA-HJ-NP-Z1-9]{25,34})$")
+_ETH_RE = re.compile(r"^0x[a-fA-F0-9]{40}$")
+
+
+def _is_ip(value: str) -> bool:
+    if _IPV4_RE.match(value):
+        head = value.split("/")[0]
+        return all(0 <= int(o) <= 255 for o in head.split("."))
+    return bool(_IPV6_RE.match(value) and value.count(":") >= 2)
 
 
 def detect_type(value: str) -> IdType:
@@ -63,6 +78,10 @@ def detect_type(value: str) -> IdType:
         return IdType.URL
     if _EMAIL_RE.match(v):
         return IdType.EMAIL
+    if _is_ip(v):
+        return IdType.IP
+    if _ETH_RE.match(v) or _BTC_RE.match(v):
+        return IdType.CRYPTO
     if _is_domain(v):
         return IdType.DOMAIN
     # Phones: strip formatting first, require enough digits.

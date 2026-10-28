@@ -27,8 +27,11 @@ INPUT_RULES: list[tuple[tuple[str, ...], str]] = [
     (("phone", "telephone", "msisdn"), "phone"),
     (("ip address", "ip range", "asn", "netblock", "cidr", "mac"), "ip"),
     (("domain", "hostname", "website", "url", "subdomain", "dns"), "domain"),
-    (("full name", "person", "people", "name of", "real name",
-      "first name", "last name"), "name"),
+    # Deliberately avoids a bare "name": "Domain name" would match it.
+    (("full name", "person", "people", "name of", "real name", "first name",
+      "last name", "individual", "entity", "company name", "business name",
+      "officer", "organisation name", "organization name", "sanctions",
+      "pep ", "next of kin"), "name"),
     (("image", "photo", "picture", "video", "document", "file"), "media"),
     (("wallet", "crypto", "bitcoin", "ethereum", "transaction hash"), "crypto"),
 ]
@@ -52,6 +55,14 @@ CATEGORY_TYPES = {
     "Archives": ["domain"],
     "Search Engines": ["name", "username"],
     "Cloud Infrastructure": ["domain"],
+    "Cyber Threat Intelligence": ["domain", "ip"],
+    "Compliance & Risk Intelligence": ["name"],
+    "Online Communities": ["username", "name"],
+    "Classifieds": ["username", "name"],
+    "Disinformation & Media Verification": ["media"],
+    "Encoding / Decoding": ["media"],
+    "Documentation / Evidence Capture": ["media"],
+    "Malicious File Analysis": ["media", "domain"],
 }
 KEEP_TYPES = {"username", "email", "domain", "phone", "name", "ip", "crypto", "media"}
 

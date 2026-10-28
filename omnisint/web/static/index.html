@@ -77,6 +77,17 @@
     <div class="right">
       <div class="tabs" id="tabs"></div>
       <div class="pane out pane-grid">
+        <div class="filterbar">
+          <span class="flabel">Filter</span>
+          <input type="text" id="filter" spellcheck="false"
+                 placeholder="platform, url, name, source…  ( / to focus, Esc to clear )">
+          <button class="qf" id="qfSubject" title="Only accounts attributed to your subject">subject</button>
+          <button class="qf" id="qfOthers" title="Only accounts that look like other people">others</button>
+          <button class="qf" id="qfConfirmed" title="Only accounts confirmed to exist">confirmed</button>
+          <button class="qf" id="qfData" title="Only rows that returned profile data">has data</button>
+          <button id="qfClear">Clear</button>
+          <span class="fcount" id="fcount"></span>
+        </div>
         <div class="scroll in" id="grid">
           <div class="empty">No results yet. Type what you know and press Scan.</div>
         </div>

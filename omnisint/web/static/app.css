@@ -159,6 +159,17 @@ legend { padding: 0 3px; }
 .tab.on { font-weight: bold; padding: 4px 12px 4px; top: 0; z-index: 2; }
 .tab .count { color: var(--dim); font-weight: normal; }
 
+/* -- display filter ------------------------------------------------------ */
+.filterbar { display: flex; align-items: center; gap: 4px; padding: 3px 4px;
+  background: var(--face); border-bottom: 1px solid var(--shadow); flex: 0 0 auto; }
+.filterbar .flabel { font-weight: bold; padding: 0 2px; }
+.filterbar input { flex: 1 1 auto; min-width: 120px; }
+.filterbar button.qf { padding: 2px 8px; }
+.filterbar button.qf.on { background: #d8e8ff; }
+.fcount { color: var(--dim); white-space: nowrap; padding: 0 4px;
+  font-variant-numeric: tabular-nums; }
+.filterbar input.nomatch { background: #ffd6d6; }
+
 /* -- data grid (Wireshark) ---------------------------------------------- */
 table.grid { border-collapse: collapse; width: 100%;
   font: 11px "Consolas", "DejaVu Sans Mono", Menlo, monospace; }
