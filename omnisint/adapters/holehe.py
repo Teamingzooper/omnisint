@@ -24,6 +24,9 @@ class HoleheAdapter(Adapter):
     description = "email-to-site registration checks"
 
     def run(self, ident, workdir) -> AdapterResult:
+        # We select the newest matching CSV afterwards; a leftover from an
+        # earlier run would be adopted if this one writes nothing.
+        self.clear_outputs(workdir, "holehe_*_results.csv")
         cmd = [self.locate(), ident.value, "--no-color", "--no-clear", "-C",
                "-T", str(min(self.opts.request_timeout, 30))]
         if self.opts.passive:

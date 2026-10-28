@@ -24,6 +24,8 @@ class UserScannerAdapter(Adapter):
 
     def run(self, ident, workdir) -> AdapterResult:
         out = workdir / f"userscanner_{ident.type.value}_{ident.value}.json"
+        # user-scanner appends to -o rather than overwriting it.
+        self.clear_outputs(workdir, out.name)
         flag = "-e" if ident.type is IdType.EMAIL else "-u"
         cmd = [
             self.locate(), flag, ident.value,
@@ -127,6 +129,7 @@ class HudsonRockAdapter(Adapter):
 
     def run(self, ident, workdir) -> AdapterResult:
         out = workdir / f"hudson_{ident.value}.json"
+        self.clear_outputs(workdir, out.name)
         flag = "-e" if ident.type is IdType.EMAIL else "-u"
         proc = self._sh(
             [self.locate(), flag, ident.value, "--hudson",

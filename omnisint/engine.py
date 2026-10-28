@@ -12,6 +12,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Callable
 
+from .adapters.base import cooling_down
 from .config import ScanOptions
 from .correlate import (apply_corroboration, apply_pins, cluster_personas,
                         harvest_identity, merge_evidence, score_accounts,
@@ -94,7 +95,25 @@ class Engine:
     # -- internals --------------------------------------------------------
     def _run_hop(self, batch: list[Identifier], profile: Profile,
                  root: Path) -> list[Identifier]:
-        jobs = [(a, i) for i in batch for a in self.adapters if a.handles(i)]
+        jobs = []
+        for ident in batch:
+            for adapter in self.adapters:
+                if not adapter.handles(ident):
+                    continue
+                # Re-running a tool that just timed out spends its whole
+                # budget proving the same point. Rate limits need minutes,
+                # not retries.
+                waiting = cooling_down(adapter.name)
+                if waiting and not self.opts.only:
+                    profile.warnings.append(
+                        f"{adapter.name}: skipped — it timed out moments ago, "
+                        f"which usually means rate limiting rather than a "
+                        f"broken tool. Give it {waiting:.0f}s, or force it "
+                        f"with --only {adapter.name}.")
+                    self.progress("skip", f"{adapter.name} → {ident.value} "
+                                          f"(cooling down {waiting:.0f}s)")
+                    continue
+                jobs.append((adapter, ident))
         discovered: list[Identifier] = []
 
         if not jobs:

@@ -573,6 +573,24 @@ like the tool being broken.
 `--deep` scales every cap by four, so widening a sweep deliberately is not
 strangled by a limit meant to catch a hang.
 
+### When a tool is being rate-limited
+
+`user-scanner` normally answers in about 20 seconds. Run several scans
+back-to-back and it stops answering at all, burning its whole 180s budget
+and returning nothing — which reads exactly like a broken tool. It is not;
+the sites it probes are throttling you, and that clears in minutes rather
+than seconds.
+
+A timeout now arms a 150-second cooldown on that backend. The next scan
+skips it and says why, instead of spending three more minutes proving the
+same point:
+
+```
+  – user-scanner → jdoe (cooling down 112s)
+```
+
+`--only user-scanner` overrides it, because sometimes you do want to wait.
+
 Anything that takes more than 25 seconds reports that it is still working,
 with its budget, so slow is distinguishable from dead:
 

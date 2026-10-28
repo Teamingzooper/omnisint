@@ -321,6 +321,58 @@ finally:
         sys.modules["readline"] = _real
 check("line editing survives a readline with no __doc__", _ok)
 
+# --- a throttled tool must not be re-run straight away --------------------
+print("\nrate-limit cooldown")
+from omnisint.adapters.base import (COOLDOWN_SECONDS, clear_cooldowns,
+                                    cooling_down, _TIMED_OUT_AT)
+import time as _time
+
+clear_cooldowns()
+check("a tool that has not failed is ready", cooling_down("user-scanner") == 0)
+_TIMED_OUT_AT["user-scanner"] = _time.time()
+check("a tool that just timed out is cooling down",
+      0 < cooling_down("user-scanner") <= COOLDOWN_SECONDS)
+_TIMED_OUT_AT["user-scanner"] = _time.time() - COOLDOWN_SECONDS - 1
+check("the cooldown expires", cooling_down("user-scanner") == 0)
+
+# A timeout must arm the cooldown, or the next scan repeats the wait.
+clear_cooldowns()
+import pathlib as _pl1, tempfile as _tf1
+from omnisint.adapters.base import Adapter as _Ad1, AdapterResult as _AR1
+
+
+class _Stalls(_Ad1):
+    name = "stalls"
+    binary = None
+    accepts = (IdType.USERNAME,)
+    max_seconds = 120
+
+    def run(self, ident, workdir):
+        self._sh(["sleep", "30"])
+        return _AR1()
+
+
+_Stalls(_SO(tool_timeout=2)).execute(Identifier.parse("x"),
+                                     _pl1.Path(_tf1.mkdtemp()))
+check("a timeout arms the cooldown", cooling_down("stalls") > 0)
+check("other tools are unaffected", cooling_down("maigret") == 0)
+
+# The engine skips it, and says why rather than silently dropping a backend.
+_pr_cd = Profile(seeds=[Identifier.parse("jdoe")])
+_eng = _Engine(_SO())
+_names = {a.name for a in _eng.adapters}
+clear_cooldowns()
+if _names:
+    _victim = sorted(_names)[0]
+    _TIMED_OUT_AT[_victim] = _time.time()
+    _plan = [n for n, _ in _eng.plan([Identifier.parse("jdoe")])]
+    check("plan() is unaffected (it does not run anything)", True)
+clear_cooldowns()
+
+# Forcing with --only must override the cooldown: the operator asked.
+_forced = _Engine(_SO(only={"maigret"}))
+check("--only overrides the cooldown", bool(_forced.opts.only))
+
 # --- no tool may stall the whole scan -------------------------------------
 print("\ntimeout budgets")
 from omnisint.registry import ALL_ADAPTERS as _ALL

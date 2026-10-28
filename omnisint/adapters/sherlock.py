@@ -27,6 +27,7 @@ class SherlockAdapter(Adapter):
 
     def run(self, ident, workdir) -> AdapterResult:
         out = workdir / f"sherlock_{ident.value}.txt"
+        self.clear_outputs(workdir, out.name)
         cmd = [
             self.locate(), ident.value,
             "--print-found", "--no-color", "--no-txt",

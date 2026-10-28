@@ -36,6 +36,7 @@ class MaigretAdapter(Adapter):
     def run(self, ident, workdir) -> AdapterResult:
         outdir = workdir / "maigret"
         outdir.mkdir(parents=True, exist_ok=True)
+        self.clear_outputs(outdir, f"report_{ident.value}*.json")
 
         cmd = [
             self.locate(), ident.value,

@@ -10,6 +10,27 @@ from typing import Iterable
 from ..models import Evidence, Identifier, IdType, ToolRun
 
 
+#: When a tool last timed out, by adapter name. Rate limiting is the usual
+#: cause, and it does not clear in seconds — so re-running immediately spends
+#: the whole budget again to learn the same nothing.
+_TIMED_OUT_AT: dict[str, float] = {}
+
+#: How long to leave a timed-out tool alone before trying it again.
+COOLDOWN_SECONDS = 150
+
+
+def cooling_down(name: str) -> float:
+    """Seconds left on a tool's cooldown, or 0 if it is ready."""
+    last = _TIMED_OUT_AT.get(name)
+    if last is None:
+        return 0.0
+    return max(0.0, COOLDOWN_SECONDS - (time.time() - last))
+
+
+def clear_cooldowns() -> None:
+    _TIMED_OUT_AT.clear()
+
+
 @dataclass
 class AdapterResult:
     evidence: list[Evidence] = field(default_factory=list)
@@ -74,6 +95,7 @@ class Adapter:
             # Report the budget, not the whole argv — the raw command is
             # noise in a findings report.
             limit = self.budget()
+            _TIMED_OUT_AT[self.name] = time.time()
             msg = (f"{self.name}: timed out after {limit}s — no results from "
                    "this source (not a negative result)")
             return AdapterResult(warnings=[msg]), ToolRun(
@@ -114,6 +136,25 @@ class Adapter:
                 cap *= self.deep_multiplier
             limit = min(limit, cap)
         return limit
+
+    @staticmethod
+    def clear_outputs(workdir, *patterns: str) -> None:
+        """Remove our own leftovers before a tool writes new ones.
+
+        Not every tool overwrites its output file — user-scanner appends, so
+        a stale file silently doubles the results — and tools that pick "the
+        newest matching file" can latch onto a previous run's output when
+        the current one produces none. Both failures are invisible: you get
+        a plausible answer built partly from an older scan.
+        """
+        from pathlib import Path
+
+        for pattern in patterns:
+            for stale in Path(workdir).glob(pattern):
+                try:
+                    stale.unlink()
+                except OSError:
+                    pass
 
     def _sh(self, cmd: Iterable[str], timeout: int | None = None, cwd=None):
         cmd = [str(c) for c in cmd]

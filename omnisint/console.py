@@ -514,6 +514,10 @@ class Console:
             task = prog.add_task("querying…", total=len(plan))
 
             def on_progress(kind, message):
+                if kind == "skip":
+                    prog.console.print(f"  [yellow]–[/yellow] [dim]{message}[/dim]")
+                    prog.advance(task)
+                    return
                 if kind == "slow":
                     prog.console.print(f"  [yellow]⋯[/yellow] [dim]{message}[/dim]")
                     return
