@@ -107,6 +107,11 @@ class Viewer:
         self.on_export = on_export
         self.index = 0
         self.offset = 0
+        #: Display filter, mirroring the web UI: plain substring matching,
+        #: space-separated terms ANDed. An expression language would be more
+        #: precise and far less likely to be used mid-investigation.
+        self.filter = ""
+        self.quick: str | None = None
         self.sections = self._build_sections()
         self._cache: dict[int, list[str]] = {}
 
@@ -125,7 +130,10 @@ class Viewer:
                     badge=str(len(p.names))),
             Section("personas", "Identities", lambda: panels.personas(p),
                     badge=f"{diff} flagged" if diff else str(len(p.personas))),
-            Section("accounts", "Accounts", lambda: panels.accounts(p, 0.0, True),
+            Section("accounts", "Accounts",
+                    lambda: panels.accounts(p, 0.0, True,
+                                            predicate=self._predicate(),
+                                            filter_note=self._filter_note()),
                     badge=str(len(accounts))),
             Section("details", "Full data", lambda: panels.details(p),
                     badge=str(len(accounts) - bare)),
@@ -145,6 +153,66 @@ class Viewer:
         ]
         _ = same
         return sections
+
+    #: Quick filters, cycled with F. These read account fields, so they only
+    #: apply to the Accounts section — elsewhere they are simply ignored.
+    QUICK_ORDER = (None, "subject", "others", "confirmed", "data")
+    QUICK_TESTS = {
+        "subject": lambda a: a.attribution_level == "same person" or a.pinned,
+        "others": lambda a: a.attribution_level == "likely different person",
+        "confirmed": lambda a: a.level == "confirmed",
+        "data": lambda a: bool(a.metadata),
+    }
+
+    def _predicate(self):
+        """Row test combining the typed filter and the active quick filter."""
+        terms = self.filter.lower().split()
+        quick = self.QUICK_TESTS.get(self.quick)
+        if not terms and not quick:
+            return None
+
+        def test(account) -> bool:
+            if quick and not quick(account):
+                return False
+            if not terms:
+                return True
+            hay = " ".join(str(x) for x in (
+                account.platform, account.url or "", account.persona or "",
+                " ".join(sorted(account.sources)),
+                " ".join(f"{k}={v}" for k, v in (account.metadata or {}).items()),
+            )).lower()
+            return all(t in hay for t in terms)
+
+        return test
+
+    def _filter_note(self) -> str:
+        bits = []
+        if self.quick:
+            bits.append(self.quick)
+        if self.filter:
+            bits.append(f'"{self.filter}"')
+        return " · ".join(bits)
+
+    def _prompt(self, label: str) -> str:
+        """Read a line at the foot of the screen, with the terminal sane."""
+        import termios
+
+        fd = sys.stdin.fileno()
+        saved = termios.tcgetattr(fd)
+        try:
+            # read_key leaves the terminal cooked between keystrokes, so the
+            # line is echoed and editable here without further setup.
+            sys.stdout.write(f"\r\x1b[K{label}")
+            sys.stdout.flush()
+            return (sys.stdin.readline() or "").strip()
+        except (OSError, EOFError):
+            return ""
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, saved)
+
+    def _invalidate(self) -> None:
+        self._cache.clear()
+        self.offset = 0
 
     def _lines(self, index: int) -> list[str]:
         """Render a section once and cache its ANSI lines."""
@@ -209,8 +277,12 @@ class Viewer:
             f"[bold]j[/bold][dim]/[/dim][bold]l[/bold][dim] or ←/→ section · [/dim]"
             f"[bold]i[/bold][dim]/[/dim][bold]k[/bold][dim] or ↑/↓ scroll · [/dim]"
             f"[bold]space[/bold][dim] page · [/dim][bold]1-9[/bold][dim] jump · [/dim]"
+            f"[bold]/[/bold][dim] filter · [/dim][bold]F[/bold][dim] quick · [/dim]"
+            f"[bold]x[/bold][dim] clear · [/dim]"
             f"[bold]e[/bold][dim] export · [/dim][bold]q[/bold][dim] back"
-            f"   ·   {self.sections[self.index].title} · {pos}[/dim]"
+            f"   ·   {self.sections[self.index].title} · {pos}"
+            + (f" · [/dim][cyan]{self._filter_note()}[/cyan][dim]"
+               if self._filter_note() else "") + "[/dim]"
         )
 
     # -- loop -------------------------------------------------------------
@@ -228,6 +300,10 @@ class Viewer:
                 self._draw(height)
                 key = read_key()
 
+                if key == "escape" and (self.filter or self.quick):
+                    self.filter, self.quick = "", None
+                    self._invalidate()
+                    continue
                 if key in ("q", "Q", "escape", "\x03", "\x04"):
                     self._clear()
                     return
@@ -254,6 +330,21 @@ class Viewer:
                     self.offset = 0
                 elif key in (END, "G"):
                     self.offset = max(0, len(self._lines(self.index)) - height)
+                elif key == "/":
+                    typed = self._prompt("filter: ")
+                    self.filter = typed
+                    self._invalidate()
+                    self.index = next((i for i, s_ in enumerate(self.sections)
+                                       if s_.key == "accounts"), self.index)
+                elif key in ("F",):
+                    order = self.QUICK_ORDER
+                    self.quick = order[(order.index(self.quick) + 1) % len(order)]
+                    self._invalidate()
+                    self.index = next((i for i, s_ in enumerate(self.sections)
+                                       if s_.key == "accounts"), self.index)
+                elif key in ("x", "X"):
+                    self.filter, self.quick = "", None
+                    self._invalidate()
                 elif key in ("e", "E") and self.on_export:
                     self._clear()
                     self.on_export()

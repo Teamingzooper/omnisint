@@ -159,14 +159,28 @@ def personas(profile: Profile) -> Panel:
                  subtitle=sub, border_style="red", box=box.ROUNDED)
 
 
-def accounts(profile: Profile, min_conf: float = 0.0,
-             show_all: bool = True) -> Panel:
+def numbered(profile: Profile, min_conf: float = 0.0, show_all: bool = True):
+    """Accounts in display order, 1-indexed — what `pin 3` refers to."""
+    return list(enumerate(visible(profile, min_conf, show_all), 1))
+
+
+def accounts(profile: Profile, min_conf: float = 0.0, show_all: bool = True,
+             predicate=None, filter_note: str = "") -> Panel:
     rows = visible(profile, min_conf, show_all)
+    numbers = {id(a): n for n, a in numbered(profile, min_conf, show_all)}
+    total = len(rows)
+    if predicate is not None:
+        rows = [a for a in rows if predicate(a)]
     if not rows:
-        return Panel("[dim]No accounts met the confidence threshold.[/dim]",
-                     title="[bold]Accounts[/bold]", border_style="green",
-                     box=box.ROUNDED)
+        message = ("[dim]No accounts met the confidence threshold.[/dim]"
+                   if not total else
+                   f"[yellow]No account matches that filter.[/yellow] "
+                   f"[dim]{total} hidden — press [/dim][bold]x[/bold]"
+                   f"[dim] to clear.[/dim]")
+        return Panel(message, title="[bold]Accounts[/bold]",
+                     border_style="green", box=box.ROUNDED)
     t = Table(box=box.SIMPLE_HEAVY, header_style="bold", expand=True, pad_edge=False)
+    t.add_column("#", justify="right", no_wrap=True, width=4, style="dim")
     t.add_column("Exists", justify="right", no_wrap=True, width=6)
     t.add_column("Same?", no_wrap=True, width=8)
     t.add_column("Platform", overflow="ellipsis", ratio=3, min_width=12)
@@ -187,14 +201,21 @@ def accounts(profile: Profile, min_conf: float = 0.0,
             srcs = ",".join(sorted(s[:4] for s in a.sources))
             style, astyle = LEVEL_COLOR[level], ATTR_STYLE[a.attribution_level]
             t.add_row(
+                ("[bold cyan]" + str(numbers.get(id(a), "")) + "[/bold cyan]"
+                 if a.pinned else str(numbers.get(id(a), ""))),
                 f"[{style}]{a.confidence:.0%}[/{style}]",
                 f"[{astyle}]{ATTR_MARK[a.attribution_level]} {a.attribution:.0%}[/{astyle}]",
                 f"[{style}]{a.platform}[/{style}]", a.url or "—",
                 f"[green]{srcs}[/green]" if len(a.sources) > 1 else f"[dim]{srcs}[/dim]",
                 meta or "—",
             )
-    return Panel(t, title=f"[bold]Accounts[/bold] [dim]({len(rows)})[/dim]",
-                 subtitle="[dim]Exists = handle is registered · "
+    heading = (f"[bold]Accounts[/bold] [dim]({len(rows)} of {total})[/dim]"
+               if len(rows) != total
+               else f"[bold]Accounts[/bold] [dim]({total})[/dim]")
+    if filter_note:
+        heading += f"  [cyan]{filter_note}[/cyan]"
+    return Panel(t, title=heading,
+                 subtitle="[dim]# = pin number · Exists = handle is registered · "
                           "Same? = evidence it is your subject · "
                           "± = matched a secondary term[/dim]",
                  border_style="green", box=box.ROUNDED)

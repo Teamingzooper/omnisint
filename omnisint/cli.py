@@ -126,6 +126,21 @@ def build_parser() -> argparse.ArgumentParser:
                      help="start in full-database sweep mode")
     con.add_argument("-v", "--verbose", action="store_true",
                      help="start with verbose output on")
+    # The prompt already accepts these inline, so the launcher accepts them
+    # too: having `omni --only maigret` fail while typing it at the prompt
+    # works is a difference with no reason behind it.
+    con.add_argument("--only", default="", metavar="A,B",
+                     help="run only these backends")
+    con.add_argument("--exclude", default="", metavar="A,B",
+                     help="skip these backends")
+    con.add_argument("--spiderfoot", action="store_true",
+                     help="enable SpiderFoot from the start")
+    con.add_argument("--hudson", action="store_true",
+                     help="enable breach-exposure checks from the start")
+    con.add_argument("--darkweb", action="store_true",
+                     help="enable dark-web search (needs Tor)")
+    con.add_argument("--nsfw", action="store_true",
+                     help="include adult-content sites")
     con.add_argument("--timeout", type=int, default=20)
     con.add_argument("--workers", type=int, default=6)
 
@@ -393,6 +408,13 @@ def cmd_console(args, console) -> int:
               else "deep" if getattr(args, "deep", False) else "standard")
     opts = apply_preset(ScanOptions(), preset)
     opts.verbose = getattr(args, "verbose", False)
+    opts.nsfw = getattr(args, "nsfw", False)
+    opts.only = {o.strip() for o in getattr(args, "only", "").split(",") if o.strip()}
+    opts.exclude = {e.strip() for e in getattr(args, "exclude", "").split(",") if e.strip()}
+    for flag, backend in (("spiderfoot", "spiderfoot"), ("hudson", "hudsonrock"),
+                          ("darkweb", "darkweb")):
+        if getattr(args, flag, False):
+            opts.only = set(opts.only) | {backend}
     # The console exists to dump everything; filtering is opt-in there.
     opts.min_confidence = 0.0
     reports = getattr(args, "reports", None)

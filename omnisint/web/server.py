@@ -91,28 +91,9 @@ class State:
 
     @staticmethod
     def anchors_from_pins(pinned: list[dict]) -> tuple[list[str], list[str]]:
-        """Turn confirmed accounts into things worth searching and matching.
-
-        A confirmed account is the richest anchor an operator can give us:
-        its handle becomes a target in its own right, its name anchors
-        persona clustering, and its employer/school/location become
-        cross-checks. This is what makes "stack these, then rescan" better
-        than simply re-running the same query.
-        """
-        seeds, terms = [], []
-        for pin in pinned:
-            for key in ("username", "handle", "login"):
-                v = str(pin.get(key) or "").strip()
-                if v and v not in seeds:
-                    seeds.append(v)
-            name = str(pin.get("fullname") or "").strip()
-            if name and name not in seeds:
-                seeds.append(name)
-            for t in (pin.get("terms") or []):
-                t = str(t).strip()
-                if t and t not in terms:
-                    terms.append(t)
-        return seeds, terms
+        """Shared with the console — see omnisint/pins.py."""
+        from ..pins import anchors_from_pins
+        return anchors_from_pins(pinned)
 
     def start(self, raw_targets: list[str], secondary: list[str],
               preset: str, extra: dict, pinned: list[dict] | None = None) -> Run:

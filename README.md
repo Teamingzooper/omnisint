@@ -93,7 +93,23 @@ sortable table with coloured rows.
 
 ### Stacking accounts into one identity
 
-Each account row has a **+**. Pressing it says *this account is my subject* —
+**In the console**, accounts carry a `#` column. `pin 3` confirms one,
+`pinned` lists them, `rescan` re-runs anchored on what you confirmed:
+
+```
+◉ pin 1
+  ★ #1 GitHub confirmed as your subject
+
+  A rescan would add ajr, Alex Rivera and cross-check Acme
+  Type rescan when you are ready.
+```
+
+A pin takes effect immediately — the account jumps to 99% attribution and
+reads "confirmed by you" — rather than waiting for the rescan to reflect
+what you just said. If the account exposed no handle, name or context it
+says so, instead of leaving you to wonder why `rescan` found nothing new.
+
+**In the browser**, the same thing is the `+` on each row. Pressing it says *this account is my subject* —
 and that is treated as your judgement, not a tool's conclusion: pinned
 accounts are labelled "confirmed by you" everywhere, and the report records
 that the attribution came from you.
@@ -141,6 +157,11 @@ The same summary appears in the terminal viewer ("What they do") and in the
 Markdown and HTML exports.
 
 ### Display filter
+
+Both interfaces have one. In the console report viewer: `/` to type a
+filter, `F` to cycle the quick filters, `x` or `Esc` to clear. The heading
+shows `Accounts (2 of 18)  "github"` so a narrowed view can never be
+mistaken for a complete one.
 
 With several hundred rows, sorting is not enough. The grid has a Wireshark
 -style display filter: plain substring matching across every visible cell,

@@ -75,6 +75,8 @@ scan — it does not exit; use [cyan]quit[/cyan] for that.
   [cyan]opts[/cyan]            show current settings
   [cyan]tools[/cyan]           which backends are installed
   [cyan]web[/cyan]             open the local browser UI (Ctrl-C returns here)
+  [cyan]pin <n>[/cyan]         confirm account #n is your subject ([cyan]unpin[/cyan], [cyan]pinned[/cyan])
+  [cyan]rescan[/cyan]          re-run anchored on what you confirmed
   [cyan]leads [n][/cyan]       where to look by hand (OSINT Framework catalogue)
   [cyan]found[/cyan]           identifiers the scan discovered — search them too
   [cyan]view[/cyan] / [cyan]last[/cyan]     reopen the last report in the browser
@@ -115,7 +117,8 @@ _COMMANDS = {"scan", "go", "run", "show", "drop", "deep", "pivot", "set",
              "opts", "options", "tools", "last", "save", "help", "?", "quit",
              "exit", "q", "clear", "expand", "quick", "standard", "verbose",
              "-q", "-d", "-v", "-s", "export", "view", "sec", "secondary",
-             "+", "found", "web", "ui", "examples", "undo", "again", "leads"}
+             "+", "found", "web", "ui", "examples", "undo", "again", "leads",
+             "pin", "unpin", "pinned", "rescan"}
 
 
 def _enable_line_editing(home) -> None:
@@ -174,6 +177,9 @@ class Console:
         #: Discovered identifiers the operator has already been offered and
         #: declined, so we stop asking about the same ones every scan.
         self.declined: set[str] = set()
+        #: Accounts the operator confirmed as their subject, keyed as the
+        #: correlator keys them. Shared shape with the web UI's + button.
+        self.pins: dict[str, dict] = {}
         self.last = None
         self.last_meta: dict = {}
         self.outdir = outdir or (Path.home() / "omnisint-reports")
@@ -521,7 +527,8 @@ class Console:
 
             engine.progress = on_progress
             try:
-                profile = engine.scan(self.targets, secondary=self.secondary)
+                profile = engine.scan(self.targets, secondary=self.secondary,
+                                      pinned=list(self.pins.values()))
             except KeyboardInterrupt:
                 profile = None
 
@@ -737,6 +744,137 @@ class Console:
             self.c.print(f"  [green]+[/green] {ident.value}")
         self.c.print(f"\n[dim]{len(chosen)} added — press Enter to scan, or "
                      "add more first.[/dim]\n")
+
+    # -- confirmed identity ----------------------------------------------
+    def _pin(self, rest: list[str], add: bool) -> None:
+        """Confirm (or unconfirm) accounts as belonging to the subject.
+
+        This is the operator asserting something the tools cannot conclude,
+        so it is recorded as their judgement and labelled that way in the
+        report — see apply_pins() in correlate.
+        """
+        from .panels import numbered
+        from .pins import key_for, pin_from_account
+
+        if self.last is None:
+            self.c.print("[dim]Nothing to pin yet — run a scan first.[/dim]")
+            return
+        rows = dict(numbered(self.last, self.opts.min_confidence, True))
+        if not rest:
+            self.c.print(f"[yellow]usage:[/yellow] "
+                         f"[cyan]{'pin' if add else 'unpin'} 3[/cyan] or "
+                         f"[cyan]{'pin' if add else 'unpin'} 1 4 7[/cyan]"
+                         f"[dim] — numbers from the # column in Accounts[/dim]")
+            return
+
+        changed = 0
+        for token in rest:
+            if not token.isdigit() or int(token) not in rows:
+                self.c.print(f"[yellow]no account #{token}[/yellow]"
+                             f"[dim] — 1 to {len(rows)}[/dim]")
+                continue
+            account = rows[int(token)]
+            key = key_for(account)
+            if add:
+                self.pins[key] = pin_from_account(account)
+                account.pinned = True
+                self.c.print(f"  [green]★[/green] #{token} [bold]"
+                             f"{account.platform}[/bold] confirmed as your subject")
+            else:
+                self.pins.pop(key, None)
+                account.pinned = False
+                self.c.print(f"  [dim]unpinned #{token} {account.platform}[/dim]")
+            changed += 1
+
+        if changed:
+            self._apply_pins_now()
+        if changed and add:
+            seeds, terms = self._pin_anchors()
+            if not seeds and not terms:
+                # Pinning a row whose profile exposed nothing still marks it
+                # as yours in the report, but it cannot anchor a rescan.
+                # Saying so beats a silent "rescan would add: —".
+                self.c.print(
+                    "\n  [dim]That account exposed no handle, name or context, "
+                    "so it adds nothing for a rescan to search. It is still "
+                    "marked as yours in the report.[/dim]")
+            if seeds or terms:
+                self.c.print(f"\n  [dim]A rescan would add[/dim] "
+                             f"[cyan]{', '.join(seeds) or 'no new handles'}[/cyan]"
+                             + (f"[dim] and cross-check[/dim] "
+                                f"[magenta]{', '.join(terms)}[/magenta]" if terms else "")
+                             + f"\n  [dim]Type[/dim] [cyan]rescan[/cyan]"
+                               f"[dim] when you are ready.[/dim]")
+
+    def _apply_pins_now(self) -> None:
+        """Re-score the loaded profile so a pin shows up immediately.
+
+        Waiting for a rescan to reflect the operator's own judgement makes
+        the report disagree with what they just told it.
+        """
+        from .correlate import apply_pins
+
+        if self.last is None:
+            return
+        self.last.pinned = list(self.pins.values())
+        for account in self.last.accounts.values():
+            account.pinned = False
+        # apply_pins appends a provenance caveat; drop the previous one so
+        # repeated pinning does not stack duplicates.
+        self.last.warnings = [w for w in self.last.warnings
+                              if "you confirmed them" not in w]
+        apply_pins(self.last)
+
+    def _pin_anchors(self) -> tuple[list[str], list[str]]:
+        from .pins import anchors_from_pins
+        seeds, terms = anchors_from_pins(list(self.pins.values()))
+        known = {t.value.lower() for t in self.targets}
+        return ([s for s in seeds if s.lower() not in known],
+                [t for t in terms if t not in self.secondary])
+
+    def _show_pins(self) -> None:
+        if not self.pins:
+            self.c.print("[dim]No accounts confirmed yet. Run a scan, then "
+                         "[/dim][cyan]pin <number>[/cyan][dim] using the # "
+                         "column.[/dim]")
+            return
+        self.c.print("\n[bold]Confirmed identity[/bold] [dim](your judgement, "
+                     "not a tool's conclusion)[/dim]")
+        for pin in self.pins.values():
+            bits = [b for b in (pin.get("fullname"), pin.get("username")) if b]
+            self.c.print(f"  [green]★[/green] [bold]{pin['platform']}[/bold]"
+                         + (f"  [dim]{' · '.join(bits)}[/dim]" if bits else ""))
+            if pin.get("terms"):
+                self.c.print(f"      [magenta]± {', '.join(pin['terms'])}[/magenta]")
+        seeds, terms = self._pin_anchors()
+        if seeds or terms:
+            self.c.print(f"\n  [dim]rescan would add:[/dim] "
+                         f"[cyan]{', '.join(seeds) or '—'}[/cyan]"
+                         + (f" [dim]·[/dim] [magenta]{', '.join(terms)}[/magenta]"
+                            if terms else "") + "\n")
+        else:
+            self.c.print("\n  [dim]None of these exposed a handle, name or "
+                         "context, so a rescan would search nothing new.[/dim]\n")
+
+    def _rescan(self) -> None:
+        """Re-run, anchored on whatever has been confirmed."""
+        if not self.pins:
+            self.c.print("[dim]Nothing confirmed — [/dim][cyan]pin <number>"
+                         "[/cyan][dim] first, or press Enter for a plain "
+                         "rescan.[/dim]")
+            return
+        seeds, terms = self._pin_anchors()
+        for value in seeds:
+            ident = Identifier.parse(value)
+            if ident.type is not IdType.UNKNOWN:
+                self.targets.append(ident)
+                self.c.print(f"  [green]+[/green] {value}  [dim]→ "
+                             f"{ident.type.value} (from a confirmed account)[/dim]")
+        for term in terms:
+            self.secondary.append(term)
+            self.c.print(f"  [magenta]±[/magenta] {term}  [dim]→ cross-check "
+                         f"(from a confirmed account)[/dim]")
+        self._scan()
 
     def _leads(self, rest: list[str]) -> None:
         """Where to look by hand, for the identifiers currently loaded."""
@@ -966,6 +1104,14 @@ class Console:
                     self._export(rest[0] if rest else None)
                 elif head == "view":
                     self._view()
+                elif head == "pin":
+                    self._pin(rest, add=True)
+                elif head == "unpin":
+                    self._pin(rest, add=False)
+                elif head == "pinned":
+                    self._show_pins()
+                elif head == "rescan":
+                    self._rescan()
                 elif head == "leads":
                     self._leads(rest)
                 elif head == "examples":

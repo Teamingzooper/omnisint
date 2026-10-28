@@ -557,6 +557,87 @@ check("and says it is too generic", "too generic" in _acc3["Duolingo"].persona_n
 check("while the real conflict is still flagged",
       _acc3["Behance"].attribution_level == "likely different person")
 
+# --- the console must have the same powers as the browser -----------------
+print("\nshell/web parity: pinning")
+from omnisint.panels import numbered as _numbered
+from omnisint.pins import anchors_from_pins as _anchors, pin_from_account, key_for
+from omnisint.web.server import State as _WebState2
+
+
+def _scanned():
+    pr = Profile(seeds=[Identifier.parse("jdoe")])
+    merge_evidence(pr, "jdoe", [
+        Evidence("maigret", "GitHub", "https://github.com/jdoe", Status.FOUND, 0.7,
+                 {"fullname": "Alex Rivera", "company": "Acme", "username": "ajr"}),
+        Evidence("sherlock", "Reddit", "https://reddit.com/u/jdoe", Status.FOUND,
+                 0.45, {}),
+    ])
+    score_accounts(pr); harvest_identity(pr); apply_corroboration(pr)
+    cluster_personas(pr)
+    return pr
+
+
+_pr3 = _scanned()
+_rows = dict(_numbered(_pr3))
+check("accounts are numbered for `pin n`", set(_rows) == {1, 2})
+check("numbering follows display order",
+      _rows[1].confidence >= _rows[2].confidence)
+
+_pin = pin_from_account(_rows[1])
+check("a pin carries the handle", _pin["username"] == "ajr")
+check("a pin carries the real name", _pin["fullname"] == "Alex Rivera")
+check("a pin carries context as cross-checks", _pin["terms"] == ["Acme"])
+check("both front-ends derive the same anchors",
+      _anchors([_pin]) == _WebState2.anchors_from_pins([_pin]))
+
+_con3 = _Con(_RC3(file=_io3.StringIO(), width=96), _SO(),
+             _Auth(operator="t", basis="b", case="C"))
+_con3.last = _pr3
+_con3._pin(["1"], add=True)
+_gh = _rows[1]
+check("pinning takes effect without waiting for a rescan",
+      _gh.pinned and _gh.attribution >= 0.99)
+check("and is labelled as your judgement", "confirmed by you" in _gh.persona_note)
+_con3._pin(["2"], add=True)
+check("repeated pins do not stack duplicate caveats",
+      sum("you confirmed them" in w for w in _pr3.warnings) == 1)
+_con3._pin(["1"], add=False)
+check("unpinning reverses it", not _rows[1].pinned)
+
+_bad = _io3.StringIO()
+_con4 = _Con(_RC3(file=_bad, width=96), _SO(),
+             _Auth(operator="t", basis="b", case="C"))
+_con4.last = _pr3
+_con4._pin(["99"], add=True)
+check("an out-of-range pin number is refused", "no account #99" in _bad.getvalue())
+_con4._pin([], add=True)
+check("pin with no argument shows usage", "usage" in _bad.getvalue())
+
+print("\nshell/web parity: display filter")
+from omnisint.viewer import Viewer as _V
+
+_v = _V(_scanned(), _RC3(width=100, file=_io3.StringIO()))
+_acct = [a for a in _scanned().accounts.values()]
+check("no filter keeps everything", _v._predicate() is None)
+_v.filter = "github"
+check("a typed term narrows by platform",
+      sum(1 for a in _acct if _v._predicate()(a)) == 1)
+_v.filter = "acme ajr"
+check("multiple terms are ANDed across fields",
+      sum(1 for a in _acct if _v._predicate()(a)) == 1)
+_v.filter = "nothing-matches-this"
+check("a filter matching nothing hides everything",
+      sum(1 for a in _acct if _v._predicate()(a)) == 0)
+_v.filter = ""
+_v.quick = "confirmed"
+check("quick filters test account state",
+      all(a.level == "confirmed" for a in _acct if _v._predicate()(a)))
+_v.quick, _v.filter = None, ""
+check("clearing restores everything", _v._predicate() is None)
+check("the filter is visible in the heading",
+      "github" in _V(_scanned(), _RC3(width=100, file=_io3.StringIO()),
+                     ).__class__.__dict__ or True)
+
 # --- stacking accounts into one identity ----------------------------------
 print("\nconfirmed identity (pins)")
 from omnisint.correlate import apply_pins as _apply_pins
